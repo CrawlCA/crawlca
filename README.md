@@ -1,12 +1,134 @@
-# CrawlCA
-
-Contract address intelligence for fragmented on-chain markets.
-
-CrawlCA connects launchpads, exchanges, and market feeds into one inspectable workspace. Every record keeps its chain and address, the source it came from, and the time it was observed. The browser reads that evidence. A separate review path turns a completed snapshot into a bounded next step: **inspect**, **watch**, or **defer**.
+<p align="center">
+  <img src="assets/brand/crawlca-mark-v3.svg" width="80" height="80" alt="CrawlCA">
+</p>
+<h1 align="center">CrawlCA</h1>
+<p align="center"><strong>Many chains. One web.</strong></p>
+<p align="center">Contract address intelligence for fragmented on-chain markets.</p>
 
 <p align="center">
-  <img src="assets/brand/crawlca-mark-v3.svg" width="72" height="72" alt="CrawlCA mark">
+  <a href="https://www.crawlca.dev/">Enter the Room</a> ·
+  <a href="https://www.crawlca.dev/console.html">Explore contracts</a> ·
+  <a href="https://www.crawlca.dev/sources.html">Trace sources</a> ·
+  <a href="https://www.crawlca.dev/technology.html">Technical atlas</a>
 </p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Rust-111827?style=for-the-badge&amp;logo=rust&amp;logoColor=white" alt="Rust">
+  <img src="https://img.shields.io/badge/Axum-111827?style=for-the-badge&amp;logoColor=white" alt="Axum">
+  <img src="https://img.shields.io/badge/Tokio-111827?style=for-the-badge&amp;logo=rust&amp;logoColor=22d3ee" alt="Tokio">
+  <img src="https://img.shields.io/badge/Three.js-111827?style=for-the-badge&amp;logo=threedotjs&amp;logoColor=white" alt="Three.js">
+  <img src="https://img.shields.io/badge/WebGL-111827?style=for-the-badge&amp;logo=webgl&amp;logoColor=a78bfa" alt="WebGL">
+  <img src="https://img.shields.io/badge/Jev-Structured_Review-6d28d9?style=for-the-badge" alt="Jev structured review">
+</p>
+
+---
+
+CrawlCA brings launchpad discoveries, DEX observations and market feeds into one inspectable workspace. Each record carries **chain + address**, **source**, **time** and **freshness**. A separate Jev review path gives collection evidence a defined next step: **inspect**, **watch** or **defer**.
+
+| OBSERVE | RESOLVE | INTERPRET |
+| :--- | :--- | :--- |
+| Collect across independent source adapters. | Connect observations around chain and contract address. | Review collection quality through a bounded decision interface. |
+
+> **Repository scope** — This repository contains the browser workspace and architecture documentation. The Rust collector, API, snapshot store and Jev worker are described components of the serving system; their backend source is not included here. Stack badges describe the product architecture, not a complete backend distribution.
+
+## Technology stack
+
+**A spatial interface. An asynchronous core. Evidence throughout.**
+
+| Layer | Technology | Responsibility | Scope |
+| :--- | :--- | :--- | :--- |
+| **Browser workspace** | HTML · CSS · JavaScript | Search, filters, inspectors and source diagnostics | Included |
+| **Spatial interface** | Three.js · WebGL | Swarm Room rendering and interactive scene | Included |
+| **3D assets & controls** | GLTFLoader · GLB · OrbitControls | Room model loading and camera navigation | Included |
+| **Browser persistence** | localStorage | Watchlist entries and last-known observations | Included; browser-local |
+| **Transport** | HTTP / JSON · Server-Sent Events | Snapshot reads, collection events and polling fallback | Browser client included |
+| **Serving layer** | Rust · Axum · Tokio | Read APIs, asynchronous collection and orchestration | Backend architecture |
+| **Snapshot state** | Shared memory · JSON cache | Current observations and retained source checkpoints | Backend architecture |
+| **Decision interface** | TypeSafe Jev · System One | Collection-level review: inspect, watch, defer | External model + backend worker |
+
+[Explore the technical atlas →](https://www.crawlca.dev/technology.html)
+
+## System architecture
+
+**One evidence foundation. Two independent paths.**
+
+```mermaid
+flowchart TB
+  F["Launchpads · DEX venues · Market feeds"]
+  subgraph CORE["SERVING SYSTEM · Rust / Axum / Tokio"]
+    A["Independent source adapters"]
+    N["Normalize identity<br/>chain + contract address"]
+    S[("Snapshot store<br/>shared memory + JSON cache")]
+    API["Read API + SSE"]
+    W["Bounded Jev worker<br/>aggregate evidence state"]
+    V["Validate response<br/>shape · probabilities · context"]
+    A --> N --> S --> API
+    S -.-> W
+    V -.-> API
+  end
+  J["TypeSafe Jev<br/>structured probabilistic decision"]
+  UI["BROWSER WORKSPACE<br/>Room · Explorer · Sources"]
+  F --> A
+  API --> UI
+  W -.-> J -.-> V
+  classDef source fill:#0f172a,stroke:#38bdf8,color:#e0f2fe
+  classDef data fill:#082f49,stroke:#22d3ee,color:#ecfeff
+  classDef review fill:#2e1065,stroke:#a78bfa,color:#f5f3ff
+  classDef surface fill:#052e16,stroke:#4ade80,color:#f0fdf4
+  class F source
+  class A,N,S,API data
+  class W,J,V review
+  class UI surface
+```
+
+**Solid path:** collect, normalize, store, serve. **Dashed path:** asynchronous review of completed evidence. Browsing and filtering read stored state; they do not trigger a new model call.
+
+[Open the interactive architecture →](https://www.crawlca.dev/assets/diagrams/crawlca-architecture.html) · [View its source](assets/diagrams/crawlca-architecture.html)
+
+## Jev · the decision layer
+
+**Evidence in. Defined outcomes out.**
+
+The documented integration applies [TypeSafe Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) to the quality of an entire collection snapshot. Its input is a compact evidence summary, rather than a token-by-token investment dossier.
+
+| Evidence | What the worker supplies |
+| :--- | :--- |
+| **Availability** | Source health, successful and failed adapters, cached states |
+| **Freshness** | Snapshot and observation times; live, cached, stale and unverified counts |
+| **Coverage** | Present and missing market cap, valuation, liquidity, volume, holders and creation time |
+| **Scope** | Record counts, unassessed risk flags and provenance limitations |
+
+```mermaid
+flowchart LR
+  E["Snapshot evidence"] --> Q["One explicit review question"]
+  Q --> J["Jev"]
+  J --> I["INSPECT<br/>Investigate the evidence"]
+  J --> W["WATCH<br/>Continue observation"]
+  J --> D["DEFER<br/>Wait for better evidence"]
+  style J fill:#2e1065,stroke:#a78bfa,color:#f5f3ff
+  style I fill:#451a03,stroke:#fbbf24,color:#fffbeb
+  style W fill:#052e16,stroke:#4ade80,color:#f0fdf4
+  style D fill:#0f172a,stroke:#94a3b8,color:#f8fafc
+```
+
+Before presentation, the response passes three application checks:
+
+1. **Contract shape** — accepted model identifier, typed choice and supported route.
+2. **Probability integrity** — finite values within `[0, 1]`, a distribution summing to one within tolerance, and a highest-probability selected route.
+3. **Context binding** — model identity, snapshot time, evaluation time, record count and review scope remain attached.
+
+`GET /api/jev` reads the latest review status; it does not initiate inference. The UI can retain an earlier validated result with its timestamps, or show a neutral waiting state. A displayed probability describes the selected review route, not token safety or future returns. Response validation checks structure and consistency, not the correctness of the model's judgment.
+
+[Read the Jev integration design →](https://www.crawlca.dev/technology.html#jev) · [TypeSafe choice documentation](https://docs.typesafe.ai/primitives/choice)
+
+## Three clocks. One workspace.
+
+| Collection | Review | Presentation |
+| :--- | :--- | :--- |
+| **Request → Normalize → Commit** | **Eligible snapshot → Evaluate → Validate** | **Read → Render → Inspect** |
+| Each source keeps its own last-success checkpoint. | New evidence and the review interval gate attempts; one review runs at a time. | Browser reads and scene animations remain independent of inference. |
+
+Source failures are isolated. Bounded requests and retained snapshots preserve context through upstream delays. The model call runs without holding the source-cache lock. **An older observation retains its original time; a refreshed screen does not make it new.**
 
 ## Surfaces
 
@@ -19,28 +141,8 @@ CrawlCA connects launchpads, exchanges, and market feeds into one inspectable wo
 
 Open the interactive map at [`assets/diagrams/crawlca-architecture.html`](assets/diagrams/crawlca-architecture.html).
 
-## Product structure
 
-The serving system is a Rust service built on **Axum** and **Tokio**. Collection and presentation run on separate clocks. Adapters write observations into a snapshot store. The browser, and the review worker, read from that store.
-
-The snapshot store keeps the latest usable observations in **shared memory**, with a **JSON cache** retained alongside them. A live read serves the current snapshot. When a source is between cycles, the retained JSON cache keeps the last successful observation available, with its original collection time still attached.
-
-```mermaid
-flowchart LR
-  feeds["Source feeds"] --> adapters["Source adapters"]
-  adapters --> identity["Normalize<br/>chain × address"]
-  identity --> store["Snapshot store<br/>shared memory + JSON cache"]
-  store --> api["Read API + SSE"]
-  api --> room["Room · Explorer · Sources"]
-  store -.-> worker["Jev worker"]
-  worker -.-> typesafe["TypeSafe Jev"]
-  typesafe -.-> review["Validated review<br/>inspect · watch · defer"]
-  review --> api
-```
-
-Solid path: collect, normalize, store, serve. Dashed path: an asynchronous review of a completed snapshot. Opening a page reads the stored result. Browsing and filtering do not start another model call.
-
-### Collection
+## Multichain source coverage
 
 Independent adapters follow each source’s own interface and cadence.
 
@@ -55,7 +157,7 @@ Independent adapters follow each source’s own interface and cadence.
 
 Identity is the chain plus the contract address. Symbols, names, and logos describe that identity. They do not define it.
 
-### The observation
+### Evidence travels with the record
 
 | Field | What it carries |
 |---|---|
@@ -66,21 +168,6 @@ Identity is the chain plus the contract address. Symbols, names, and logos descr
 
 Unknown market fields stay unknown. Explorer loads up to 500 records from sampled feeds. Activity scores come from market rules. A provider warning is shown as flagged. An unassessed row has no verified assessment on file.
 
-### Review
-
-Jev, TypeSafe’s System One model, reviews the quality of a whole collection snapshot: source health, observation age, field coverage, and the limits of what was collected. The question is fixed before inference.
-
-> Given the available evidence, what should happen next in the review of this collection snapshot?
-
-| Route | Meaning |
-|---|---|
-| **Inspect** | Source errors, stale or contradictory rows, or missing fields deserve a closer look. |
-| **Watch** | The snapshot is usable for monitoring, and its limits are already explicit. |
-| **Defer** | The snapshot is too incomplete or too old for a review judgment. |
-
-A response is kept only after its shape, probabilities, and snapshot binding pass validation. The displayed percentage is the probability of the chosen route inside that decision space. It describes review priority for the dataset.
-
-`GET /api/jev` returns the latest validated status. It does not submit a new inference.
 
 ## This repository
 
@@ -107,7 +194,7 @@ Serve the folder with any static server, then open `room.html`.
 python3 -m http.server 4173
 ```
 
-Collection itself runs on the server. Refreshing a page reads the latest snapshot.
+The static server previews the browser workspace only. Live collection and Jev review require the separate backend. Collection runs on that server; refreshing a page reads its latest snapshot.
 
 ## Principles
 
@@ -116,3 +203,17 @@ Collection itself runs on the server. Refreshing a page reads the latest snapsho
 **Time is part of the data.** A retained observation stays useful because its freshness stays visible.
 
 **Uncertainty stays visible.** Unknown fields remain unknown. Review begins where the evidence ends.
+
+## Design horizon
+
+The technical atlas outlines three directions for further development:
+
+- **Richer relationships** — connect contracts, venues and source events into navigable market context.
+- **Adaptive review** — refine inspection priorities as coverage and conditions evolve.
+- **Composable intelligence** — extend structured context into broader research and monitoring workflows.
+
+These are design directions, not delivery commitments. See the [current technical atlas](https://www.crawlca.dev/technology.html#horizon).
+
+---
+
+<p align="center"><strong>Tiny spider. Wider view.</strong><br>Identity is explicit. Time is part of the data. Uncertainty stays visible.</p>
