@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144" fill="none">
+  <title>CRAWLCA</title>
+  <rect width="144" height="144" rx="30" fill="#060B14"/>
+  <g transform="translate(8 -2)">
+    <g stroke="#EDF7FF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M45 58L30 34L18 40M39 67L18 53L8 62M39 80L16 86L8 100M46 92L31 108L27 120"/>
+      <path d="M83 58L98 34L110 40M89 67L110 53L120 62M89 80L112 86L120 100M82 92L97 108L101 120"/>
+      <path d="M64 44V37"/>
+    </g>
+    <circle cx="64" cy="31" r="6" fill="#67D9FF"/>
+    <circle cx="64" cy="72" r="28" fill="#EDF7FF"/>
+    <rect x="42" y="62" width="44" height="15" rx="7.5" fill="#060B14"/>
+    <circle cx="55" cy="69.5" r="3.6" fill="#67D9FF"/>
+    <circle cx="73" cy="69.5" r="3.6" fill="#67D9FF"/>
+  </g>
+</svg>
