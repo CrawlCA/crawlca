@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f55e6">
+<meta name="description" content="CrawlCA Swarm Room — a 3D crawler control room driven by the live CA feed.">
+<title>CrawlCA Swarm Room</title>
+<link rel="icon" type="image/svg+xml" href="assets/brand/crawlca-favicon-v3.svg">
+<link rel="stylesheet" href="site-nav.css?v=nav-room-v1">
+<script src="site-nav.js?v=nav-tech-v1" defer></script>
+<style>
+:root{
+  --frame:#1f55e6; --panel:#060b14; --line:#16223a;
+  --txt:#e9eef8; --dim:#5d6b85; --cyan:#67d9ff; --violet:#c79bff;
+  --orange:#f4a24c; --pink:#ff4da6; --blue:#4a8dff; --green:#69f0b2; --yellow:#f5c96a; --red:#ff6e83;
+  --mono:"IBM Plex Mono","JetBrains Mono","SFMono-Regular",Consolas,monospace;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.ld:empty::after{content:"";display:inline-block;width:6em;max-width:100%;height:.75em;border-radius:3px;vertical-align:middle;background:currentColor;opacity:.22;animation:ldp 1.2s ease-in-out infinite}
+@keyframes ldp{50%{opacity:.07}}
+@media (prefers-reduced-motion:reduce){.ld:empty::after{animation:none}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--frame)}
+body{font-family:var(--mono);color:var(--txt);display:flex;justify-content:center;padding:0 0 12px}
+button{font:inherit;cursor:pointer}
+.page{width:100%;max-width:1440px;padding:0 16px}
+
+header{display:flex;align-items:center;justify-content:space-between;height:62px;gap:12px}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--sans);font-weight:800;
+  font-size:clamp(16px,2vw,28px);color:#0b1020;letter-spacing:.5px;text-decoration:none}
+.brand img{width:30px;height:30px;object-fit:contain;flex:none}
+.hmid{font-size:10px;font-weight:700;letter-spacing:.5px;color:#dfe8ff}
+.hx{font-size:12px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px}
+.hx i{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.hx.loading i{animation:ldp 1.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.hx.loading i{animation:none}}
+.hbtns{display:flex;gap:8px}
+.inv-btn{background:#060b14;color:#fff;font-weight:800;font-size:12px;padding:10px 18px;border-radius:6px;letter-spacing:.5px;border:0;text-decoration:none;white-space:nowrap}
+.inv-btn.ghost{background:transparent;border:1px solid #ffffff66}
+
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card{position:relative;background:var(--panel);border-radius:6px;padding:12px 14px 10px;min-height:124px;
+  border:1px solid transparent;overflow:hidden;transition:border-color .4s,box-shadow .4s;cursor:pointer;text-align:left;color:inherit;font:inherit}
+.card.on{border-color:#4fb7ff;box-shadow:0 0 0 1px rgba(79,183,255,.35),0 0 18px rgba(63,195,255,.25)}
+.card .top{display:flex;align-items:center;gap:10px}
+.card .ico{width:28px;height:22px;flex:none}
+.card .name{font-family:var(--sans);font-weight:800;font-size:16px;letter-spacing:.3px}
+.card .tag{margin-left:auto;font-size:8px;color:var(--dim);letter-spacing:.5px}
+.card .sub{font-size:8.5px;color:var(--dim);margin-top:16px;letter-spacing:.6px;text-transform:uppercase}
+.card .val{font-size:clamp(15px,1.7vw,22px);font-weight:700;text-align:right;margin-top:6px;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .bar{height:2px;background:#1a2438;margin-top:10px;position:relative}
+.card .bar i{position:absolute;left:0;top:0;bottom:0;background:currentColor;opacity:.8;transition:width 1.2s}
+.card .foot{font-size:7.5px;color:#3f4b63;margin-top:6px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .glitch{position:absolute;right:14px;top:52px;width:76px;height:8px;background:#e0354a;opacity:0;border-radius:1px}
+.card.on .glitch{animation:glitch 1.4s steps(2) infinite}
+@keyframes glitch{0%,100%{opacity:0}30%{opacity:.75;transform:translateX(0)}60%{opacity:.4;transform:translateX(-6px)}}
+/* hero 3D room */
+.hero{position:relative;margin-top:12px;border-radius:6px;overflow:hidden;background:#04070d;aspect-ratio:16/9;min-height:320px}
+#room3d{position:absolute;inset:0}
+#room3d canvas{display:block;width:100%!important;height:100%!important;cursor:grab;touch-action:none}
+#room3d canvas:active{cursor:grabbing}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.labels span{position:absolute;transform:translate(-50%,0);font-size:9px;font-weight:700;letter-spacing:.6px;
+  padding:1px 5px;border-radius:2px;background:rgba(4,8,16,.72);white-space:nowrap}
+.labels span.hot{background:rgba(103,217,255,.18);box-shadow:0 0 10px rgba(103,217,255,.45)}
+.hero .cap{position:absolute;left:0;right:0;bottom:0;height:30px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;background:linear-gradient(transparent,rgba(3,6,12,.92) 40%);font-size:10px;color:var(--cyan);letter-spacing:.6px;pointer-events:none}
+.hero .cap span:last-child{color:#4a5670;font-size:8px}
+.hero .hud{position:absolute;top:10px;right:12px;display:flex;gap:6px;pointer-events:auto}
+.hero .hud button{border:1px solid #1b2740;background:#060b14cc;color:var(--dim);padding:4px 8px;font-size:9px;border-radius:3px}
+.hero .hud button:hover,.hero .hud button.act{color:var(--cyan);border-color:#28566a}
+.hero .scan{position:absolute;left:0;right:0;height:60px;top:-60px;pointer-events:none;
+  background:linear-gradient(transparent,rgba(103,217,255,.05),transparent);animation:scan 6s linear infinite}
+@keyframes scan{to{top:100%}}
+.hero .nogl{position:absolute;inset:0;display:none;place-items:center;color:var(--dim);font-size:11px}
+.hero.fallback .nogl{display:grid}
+
+/* Jev status and typed review results, read independently from source snapshots. */
+.jev-room{margin-top:12px;background:var(--panel);border:1px solid #25415a;border-radius:6px;overflow:hidden}
+.jev-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 24px;border-bottom:1px solid var(--line)}
+.jev-eyebrow{font-size:10px;font-weight:700;letter-spacing:1.8px;color:var(--cyan)}
+.jev-heading h2{font-family:var(--sans);font-size:clamp(24px,3vw,34px);font-weight:750;letter-spacing:-.7px;margin:6px 0}
+.jev-heading p:last-child{font-size:12px;line-height:1.6;color:#a9b6cc}
+.jev-meta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.jev-model-status{font-size:10px;letter-spacing:.5px;border:1px solid #294b5b;border-radius:4px;color:var(--cyan);background:#0c1b26;padding:8px 10px}
+.jev-link{display:inline-flex;align-items:center;min-height:44px;color:#b9c9e1;font-size:11px;text-underline-offset:4px}
+.jev-link:hover{color:var(--cyan)}
+.jev-link:focus-visible,.jev-explain summary:focus-visible{outline:2px solid var(--cyan);outline-offset:4px;border-radius:2px}
+.jev-room .hero{margin-top:0;border-radius:0;width:100%;min-width:0}
+.jev-flow{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line)}
+.jev-step{padding:18px 24px;min-width:0;position:relative}
+.jev-step+.jev-step{border-left:1px solid var(--line)}
+.jev-step-top{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:.7px;color:#b9c9e1}
+.jev-step-top span{font-size:10px;color:var(--cyan);font-variant-numeric:tabular-nums}
+.jev-step-top svg{margin-left:auto;color:#6d89a5;width:24px;height:16px;flex:none}
+.jev-step:nth-child(2) .jev-step-top span{color:var(--violet)}
+.jev-step:nth-child(3) .jev-step-top span{color:var(--yellow)}
+.jev-step h3{font-size:16px;line-height:1.5;margin:12px 0 6px;font-weight:600;color:var(--txt)}
+.jev-step p{font-size:11px;line-height:1.7;color:#a9b6cc;max-width:44ch}
+.jev-step .jev-input-status{color:var(--cyan);font-size:11px;margin-top:8px;min-height:19px}
+.jev-output{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:9px;font-size:12px;color:#b9c9e1;line-height:1.7}
+.jev-output b{color:var(--yellow)}
+.jev-step .jev-result-meta{font-size:10px;margin-top:7px;color:#8f9db5;overflow-wrap:anywhere}
+.jev-explain{padding:0 24px;border-top:1px solid var(--line);font-size:12px;color:#b9c9e1}
+.jev-explain summary{cursor:pointer;min-height:44px;padding:13px 0;line-height:1.5;width:fit-content}
+.jev-explain p{max-width:95ch;line-height:1.8;padding-bottom:18px;color:#a9b6cc}
+@media(max-width:760px){
+  .jev-heading{padding:18px;align-items:flex-start;flex-direction:column;gap:12px}
+  .jev-meta{align-items:center;flex-direction:row;flex-wrap:wrap;gap:10px 16px}
+  .jev-flow{grid-template-columns:1fr}
+  .jev-step{padding:16px 18px}
+  .jev-step+.jev-step{border-left:0;border-top:1px solid var(--line)}
+  .jev-step-top svg{transform:rotate(90deg)}
+  .jev-step p{max-width:none}
+  .jev-explain{padding:0 18px}
+  .jev-room .cap{height:auto;min-height:40px;align-items:flex-start;flex-direction:column;gap:3px;padding:6px 12px;line-height:1.5}
+}
+
+/* throughput panel */
+.panel{background:var(--panel);border-radius:6px;margin-top:12px;position:relative}
+.pair{display:grid;grid-template-columns:1fr 240px;padding:16px 20px 12px}
+.ptitle{font-size:11px;font-weight:700;letter-spacing:.4px}
+.chart{position:relative;height:178px;margin-top:6px}
+.chart .row{position:absolute;left:0;right:0;height:28px}
+.chart .lab{position:absolute;left:0;top:6px;width:90px;font-size:11px;font-weight:700}
+.chart .track{position:absolute;left:96px;right:170px;height:28px;background:#0b1322}
+.seg{position:absolute;top:0;bottom:0;transition:left 1.2s cubic-bezier(.2,.8,.2,1),width 1.2s cubic-bezier(.2,.8,.2,1);border-right:1px solid #060b14}
+.seg:hover{filter:brightness(1.25)}
+.chart .num{position:absolute;top:-22px;font-size:13px;font-weight:700;white-space:nowrap;transform:translateX(-100%);transition:left 1.2s}
+.chart .side{position:absolute;right:0;top:8px;width:160px;font-size:9px;font-weight:700;text-align:left}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;position:absolute;left:96px;right:170px;bottom:0;font-size:8px;color:var(--dim)}
+.legend b{display:inline-block;width:7px;height:7px;margin-right:4px;vertical-align:-1px}
+.profit{border-left:1px solid var(--line);text-align:right;padding-left:16px;display:flex;flex-direction:column;align-items:flex-end}
+.profit .who{font-size:11px;font-weight:700}
+.profit .big{font-family:var(--sans);font-weight:800;font-size:clamp(22px,2.6vw,38px);color:var(--cyan);margin-top:20px;
+  letter-spacing:-.5px;text-shadow:0 0 18px rgba(103,217,255,.35);white-space:nowrap}
+.profit .at{font-size:11px;font-weight:700;margin-top:8px}
+.profit .n{font-size:7.5px;color:#4a5670;margin-top:18px;letter-spacing:.5px;text-transform:uppercase}
+
+/* bottom grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.grid2 .panel{margin-top:0;padding:16px 20px}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.phead .t{font-size:13px;font-weight:700}
+.phead .r{font-size:9px;font-weight:700;color:var(--cyan);white-space:nowrap}
+.lab-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;align-items:end;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:10px;padding:10px 0;gap:8px}
+.lab-top .rv{display:flex;gap:12px;align-items:center;min-width:0}
+.lab-top .rv b{color:var(--yellow);font-size:11px;letter-spacing:.5px}
+.lab-top .rv small{display:block;font-size:7px;color:#3f4b63;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv small{display:block;font-size:6.5px;color:#4a5670;margin-bottom:6px;text-transform:uppercase}
+.kv{font-size:11px;font-weight:700}
+.tabs{display:flex;margin-top:14px;font-size:8px;color:#76839c}
+.tabs button{flex:1;padding:0 0 4px;border:0;border-bottom:2px solid transparent;max-width:136px;background:none;color:inherit;text-align:left;font-size:8px;letter-spacing:.4px}
+.tabs button.act{color:var(--cyan);border-color:var(--cyan)}
+.schem{font-size:7px;color:#3f4b63;margin-top:8px;text-transform:uppercase}
+.labbody{display:grid;grid-template-columns:1fr 120px;gap:14px;margin-top:6px}
+.labmain{position:relative;height:200px}
+.labmain svg{width:100%;height:100%}
+.minis{display:flex;flex-direction:column;gap:6px}
+.mini{border:1px solid #1b2740;border-radius:3px;height:62px;position:relative;padding:3px}
+.mini small{font-size:6px;color:#4a5670;position:absolute;left:5px;top:3px;text-transform:uppercase}
+.mini svg{width:100%;height:100%}
+.cost{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
+.cost .ln{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;height:28px;font-size:9px;color:#76839c;cursor:pointer;border-radius:3px;padding:0 4px}
+.cost .ln:hover,.cost .ln.sel{background:#0d1726}
+.cost .ln b{font-size:13px;color:#fff;font-weight:700}
+.cost .ln em{font-style:normal;font-size:9px;color:var(--dim)}
+.cost .hd{height:20px;cursor:default;font-size:8px;color:#4a5670;text-transform:uppercase}
+.cost .hd:hover{background:none}
+.chips{display:grid;grid-template-columns:1fr 1.1fr 1.1fr;gap:12px;margin-top:12px}
+.chip{border-radius:4px;text-align:center;font-size:11px;font-weight:700;padding:7px 0;border:1px solid;white-space:nowrap}
+.engine{position:relative;height:310px;margin-top:6px}
+.engine svg{width:100%;height:100%;overflow:visible}
+.erow{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px;font-size:10px;color:#76839c;gap:10px}
+.erow+.erow{border:0;padding-top:14px}
+.erow b{font-size:11px;white-space:nowrap}
+.seq{display:flex;gap:5px;margin-top:14px}
+.seq i{flex:1;height:7px;background:#16223a;border-radius:1px;transition:background .3s}
+.seq i.on{background:var(--cyan);box-shadow:0 0 6px rgba(103,217,255,.5)}
+.foot{display:flex;justify-content:space-between;color:#dfe8ff;font-size:9px;margin-top:10px;gap:10px;flex-wrap:wrap}
+
+/* logos */
+.plogo{width:14px;height:14px;border-radius:3px;object-fit:contain;vertical-align:-3px;margin-right:5px;flex:none}
+.tlogo{position:relative;display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#0b1622;flex:none;
+  border:1px solid color-mix(in srgb,var(--tc) 55%,transparent);overflow:hidden;font:700 8px/1 var(--mono);color:var(--tc);vertical-align:-4px}
+.tlogo::before{content:attr(data-mono)}
+.tlogo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+.tlogo img.on{opacity:1}
+.tlogo.lg{width:28px;height:28px;font-size:12px}
+.ca-row b{display:flex;align-items:center;gap:6px;min-width:0}
+.ca-row b em{font-style:normal;overflow:hidden;text-overflow:ellipsis}
+.labels span img{width:12px;height:12px;border-radius:2px;vertical-align:-2px;margin-right:4px}
+.labels span em{font-style:normal}
+.legend span{display:inline-flex;align-items:center}
+
+/* page-wide spider overlay */
+#swarm{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50}
+.hit{animation:hit .9s ease-out}
+@keyframes hit{0%{box-shadow:0 0 0 2px #69f0b2,0 0 26px rgba(105,240,178,.6)}100%{box-shadow:0 0 0 0 transparent}}
+
+/* source sites: a CA list page per source, read row by row by its spider */
+.sites-panel{padding:14px 16px 16px}
+.site-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.site{border:1px solid #1b2740;border-radius:5px;background:#050910;overflow:hidden;display:flex;flex-direction:column;transition:border-color .3s}
+.site.busy{border-color:var(--sc)}
+.site-bar{display:flex;align-items:center;gap:7px;height:26px;padding:0 8px;background:#0b1220;border-bottom:1px solid #16223a;font-size:9px}
+.site-bar .dots{display:flex;gap:3px}.site-bar .dots i{width:6px;height:6px;border-radius:50%;background:#2a3446}
+.site-bar .name{font-weight:700;color:var(--sc)}
+.site-bar .url{flex:1;min-width:0;background:#060b14;border-radius:3px;padding:2px 7px;color:#76839c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-bar .pill{font-size:8px;font-weight:700;white-space:nowrap;max-width:46%;overflow:hidden;text-overflow:ellipsis}
+.ca-head,.ca-row{display:grid;grid-template-columns:96px 1fr 52px 14px;gap:8px;align-items:center;padding:0 10px}
+.ca-head{height:20px;font-size:7.5px;color:#4a5670;letter-spacing:.4px;border-bottom:1px solid #16223a}
+.ca-list{height:182px;overflow:hidden}
+.ca-row{height:25px;font-size:10px;color:#a9b6cc;border-bottom:1px solid #0d1524;transition:background .25s}
+.ca-row b{color:var(--sc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ca-row span:nth-child(2){font-family:var(--mono);color:#76839c;white-space:nowrap;overflow:hidden;padding:1px 3px;border-radius:2px}
+.ca-row span:nth-child(3){text-align:right;white-space:nowrap}
+.ca-row .fdv{font-size:7px;color:#5d6b85;margin-right:3px;letter-spacing:.3px}
+.ca-row i{font-style:normal;font-weight:700;text-align:center}
+.ca-row.reading{background:color-mix(in srgb,var(--sc) 12%,transparent)}
+.ca-row.reading span:nth-child(2){color:#fff;background:linear-gradient(90deg,color-mix(in srgb,var(--sc) 55%,transparent),color-mix(in srgb,var(--sc) 55%,transparent)) no-repeat left/0% 100%;animation:suck .6s ease-out forwards}
+@keyframes suck{to{background-size:100% 100%}}
+.ca-row.ok span:nth-child(2){color:var(--sc)} .ca-row.ok i{color:#69f0b2}
+.ca-row.bad span:nth-child(2){color:#5d6b85;text-decoration:line-through} .ca-row.bad i{color:#ff6e83}
+.ca-more,.ca-empty{font-size:8.5px;color:#4a5670;padding:6px 10px}
+.raw{border-top:1px solid #16223a;background:#03060b;padding:5px 10px 6px}
+.raw-h{display:flex;justify-content:space-between;font-size:7.5px;color:#4a5670;text-transform:uppercase;letter-spacing:.4px}
+.raw-h span:last-child{color:var(--sc)}
+.raw pre{margin-top:4px;height:38px;overflow:hidden;font:8.5px/1.45 var(--mono);color:#5d7a6a;white-space:pre-wrap;word-break:break-all}
+.raw pre mark{background:color-mix(in srgb,var(--sc) 45%,transparent);color:#fff;border-radius:2px;padding:0 1px}
+.site-foot{display:flex;justify-content:space-between;gap:8px;padding:5px 10px;font-size:8px;color:#4a5670;border-top:1px solid #16223a}
+.site-foot span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-foot a{color:var(--sc);text-decoration:none;white-space:nowrap}
+
+/* live crawl pipeline */
+.pipe-panel{padding:14px 16px 12px}
+.stages{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}
+.stage{border:1px solid #16223a;border-radius:4px;padding:6px;min-height:118px;background:#050910}
+.st-h{display:flex;justify-content:space-between;font-size:8px;color:#76839c;letter-spacing:.4px;margin-bottom:5px}
+.st-h b{color:var(--cyan)}
+.job{border-left:2px solid var(--jc);background:#0b1322;padding:3px 6px;margin-top:4px;font-size:9px;display:grid;grid-template-columns:1fr auto;animation:jin .3s ease-out}
+.job b{color:var(--jc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job span{font-size:7px;font-weight:700}
+.job small{grid-column:1/-1;font-size:7px;color:#5d6b85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes jin{from{opacity:0;transform:translateY(-4px)}}
+.stage .empty{color:#2a3446;font-size:9px;padding:8px 2px}
+.plog-h,.plog .lr{display:grid;grid-template-columns:62px 52px 120px 1fr 56px 74px 70px;gap:8px;font-size:8.5px;padding:3px 4px}
+.plog-h{margin-top:10px;color:#4a5670;text-transform:uppercase;border-bottom:1px solid #16223a}
+.plog .lr{color:#a9b6cc;border-bottom:1px solid #0d1524}
+.plog .lr span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plog .lr .u{color:#5d6b85}
+.pnote{font-size:7.5px;color:#3f4b63;margin-top:8px}
+@media (max-width:1100px){.site-grid{grid-template-columns:repeat(2,1fr)}.stages{grid-template-columns:repeat(3,1fr)}}
+
+@media (max-width:760px){
+  .site-grid{grid-template-columns:1fr}
+  .stages{grid-template-columns:1fr 1fr}
+  .plog-h,.plog .lr{grid-template-columns:58px 50px 1fr 64px}
+  .plog-h span:nth-child(n+4):not(:nth-child(6)),.plog .lr span:nth-child(n+4):not(:nth-child(6)){display:none}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .grid2{grid-template-columns:1fr}
+  .pair{grid-template-columns:1fr}
+  .profit{border-left:0;border-top:1px solid var(--line);padding:14px 0 0;margin-top:10px}
+  .hmid{display:none}
+  .chart .track,.legend{right:0}
+  .chart .side{display:none}
+  .hero{aspect-ratio:4/3}
+  header{height:auto;padding:10px 0;flex-wrap:wrap}
+}
+.cyc{display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:12px;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--dim);white-space:nowrap}
+.cyc svg{width:22px;height:22px;transform:rotate(-90deg);flex:none}
+.cyc circle{fill:none;stroke-width:3}
+.cyc-b{stroke:#16223a}
+.cyc-p{stroke:currentColor;stroke-dasharray:69.12;stroke-dashoffset:69.12;stroke-linecap:round;transition:stroke-dashoffset .25s linear}
+.cyc.run svg{filter:drop-shadow(0 0 4px currentColor)}
+.cyc.pending .cyc-b{animation:ldp 1.2s ease-in-out infinite}
+.lanes{padding:12px 16px 0;display:grid;gap:3px;font-size:9px}
+.lane-h,.lane{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,.8fr);gap:12px;align-items:center}
+.lane-h{color:var(--dim);text-transform:uppercase;letter-spacing:.5px;font-size:8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.lane-h em{font-style:normal;color:#3f4b63;text-transform:none}
+.lane-h b{font-weight:inherit}
+.sh-panel>.phead{padding:14px 16px 0}
+.ln-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ln-track{position:relative;height:14px;background:#0b1322;border-radius:2px;overflow:hidden}
+.ln-bar{position:absolute;top:2px;bottom:2px;left:0;width:0;border-radius:2px;transition:width .2s linear,left .2s linear}
+.lane.live .ln-bar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.4) 0 5px,transparent 5px 10px);animation:lanemove .5s linear infinite}
+@keyframes lanemove{to{background-position:10px 0}}
+.ln-v{position:absolute;right:4px;top:0;line-height:14px;font-size:8px;color:#cfd6e2;font-weight:700;text-shadow:0 0 3px #060b14}
+.ln-heat{height:12px;min-width:0}.ln-heat svg{width:100%;height:12px;display:block}.ln-heat small{color:#3f4b63;font-size:8px}
+.newca{padding:14px 16px 16px}.newca.off{display:none}
+.newca-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;margin-top:10px}
+.flow svg{width:100%;height:150px;display:block}
+.flow-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:8px;color:var(--dim);margin-top:4px}
+.flow-legend b{display:inline-block;width:7px;height:7px;margin-right:4px;vertical-align:-1px}
+.feed{list-style:none;display:grid;gap:4px;max-height:176px;overflow:auto;align-content:start}
+.fe button{width:100%;display:grid;grid-template-columns:22px minmax(0,1fr) auto auto auto;align-items:center;gap:8px;background:#0b1322;border:1px solid transparent;color:var(--txt);padding:4px 8px;border-radius:4px;font:inherit;font-size:10px;text-align:left}
+.fe button:hover,.fe button:focus-visible{border-color:#1f6f96;outline:none}
+.fe b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fe-chain{font-size:8px;font-weight:700}
+.fe em{font-style:normal;color:var(--dim);font-size:8px;white-space:nowrap}
+.fe time{color:#5d6b85;font-size:8px;min-width:24px;text-align:right}
+.fe.new button{animation:fein 1.6s ease-out}
+@keyframes fein{0%{transform:translateX(24px);opacity:0;border-color:#ff4da6;box-shadow:0 0 14px rgba(255,77,166,.55)}40%{transform:none;opacity:1;border-color:#ff4da6}100%{border-color:transparent;box-shadow:none}}
+.fe-empty{color:#5d6b85;font-size:9px;padding:8px}
+.fe.old b{color:#aab6cc}.flow-note{margin-left:auto;color:#3f4b63}
+#newSummary.flash{animation:sumflash 1.2s}
+@keyframes sumflash{0%,40%{color:#ff4da6;text-shadow:0 0 8px #ff4da6}}
+.card .spark{position:absolute;left:14px;top:60px;width:46%;height:28px;pointer-events:none;opacity:.55}
+.card.hit{animation:cardhit 1.2s ease-out}
+@keyframes cardhit{0%{box-shadow:0 0 0 1px currentColor,0 0 22px currentColor}}
+@media (max-width:760px){.newca-body{grid-template-columns:1fr}.lane-h,.lane{grid-template-columns:96px minmax(0,1fr)}.ln-heat,.lane-h span:last-child{display:none}.cyc{margin-right:0}.cyc-t{font-size:9px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<script>
+// Shared desk map: source-site tile i == 3D desk i == spider/robot colour i.
+// Tiles render the CA list each source's API actually returned; the spider reads it row by row.
+window.CRAWLCA_DESKS = [
+  { title:'GMGN', logo:'assets/logos/gmgn.png', short:'GMGN', site:'https://gmgn.ai', color:'#69f0b2', src:['GMGN partner','GMGN official'], chains:['RH','SOL','BNB','BASE','ETH','MULTI'] },
+  { title:'PUMP.FUN', logo:'assets/logos/pump.png', short:'PUMP', site:'https://pump.fun', color:'#ff4da6', src:['Pump.fun','Moonshot','PumpSwap'], chains:['SOL'] },
+  { title:'FOUR.MEME', logo:'assets/logos/four.png', short:'FOUR', site:'https://four.meme', color:'#f4a24c', src:['Four.meme','Flap.sh','PancakeSwap'], chains:['BNB'] },
+  { title:'ROBINHOOD', logo:'assets/logos/launchpad.png', short:'HOOD', site:'https://launchpad.meme', color:'#f2a7ff', src:['Robinhood launchpad','Robinhood Uniswap'], chains:['RH'] },
+  { title:'RAYDIUM', logo:'assets/logos/raydium.png', short:'RAY', site:'https://raydium.io', color:'#67d9ff', src:['Raydium','Meteora','Orca','Jupiter'], chains:['SOL'] },
+  { title:'DEXSCREENER', logo:'assets/logos/dexscreener.png', short:'DEX', site:'https://dexscreener.com', color:'#c79bff', src:['Uniswap','Aerodrome','DexScreener'], chains:['ETH','BASE'] },
+];
+// Route a source name to its desk; unknown DEX names fall back to the DexScreener desk.
+window.crawlcaDeskFor = (source, type) => {
+  const i = window.CRAWLCA_DESKS.findIndex(d => d.src.includes(source));
+  return i >= 0 ? i : type === 'launchpad' ? 1 : 5;
+};
+// Logos: platform icons are vendored in assets/logos (same-origin, also drawn in the 3D room);
+// token logos are the image URL each source publishes, loaded https-only with no referrer.
+// A failed or missing token image falls back to a coloured monogram.
+(() => {
+  const SOURCE_LOGO = {
+    'GMGN partner': 'gmgn', 'GMGN official': 'gmgn', 'Pump.fun': 'pump', 'PumpSwap': 'pump', 'Four.meme': 'four',
+    'Robinhood launchpad': 'launchpad', 'Robinhood Uniswap': 'launchpad', 'Raydium': 'raydium', 'DexScreener': 'dexscreener',
+  };
+  const e = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeImg = u => {
+    if (typeof u !== 'string' || u.length > 2048 || /[\s"'<>]/.test(u)) return null;
+    try { const url = new URL(u); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; } catch { return null; }
+  };
+  // Remember results across snapshot re-renders. Broken URLs get a short cooldown;
+  // the browser loads only displayed rows, instead of competing with a preload queue.
+  const images = new Map();
+  const remember = (url, ok) => {
+    if (!url) return;
+    images.delete(url);
+    images.set(url, { ok, until: Date.now() + (ok ? 30 : 5) * 60 * 1000 });
+    if (images.size > 512) images.delete(images.keys().next().value);
+  };
+  const platformSrc = name => SOURCE_LOGO[name] ? `assets/logos/${SOURCE_LOGO[name]}.png` : null;
+  window.crawlcaLogo = {
+    safeImg, platformSrc,
+    platform: (name, cls = 'plogo') => { const s = platformSrc(name); return s ? `<img class="${cls}" src="${s}" alt="" width="14" height="14">` : ''; },
+    desk: (d, cls = 'plogo') => `<img class="${cls}" src="${e(d.logo)}" alt="" width="14" height="14">`,
+    token: (t, color) => {
+      const img = safeImg(t && t.image), sym = String((t && t.symbol) || '?').replace(/^\$/, '');
+      const cached = images.get(img), recent = cached && cached.until > Date.now();
+      return `<span class="tlogo" style="--tc:${e(color || '#67d9ff')}" data-mono="${e([...sym][0] || '?')}">${img && !(recent && !cached.ok) ? `<img src="${e(img)}" alt="" decoding="async" referrerpolicy="no-referrer"${recent && cached.ok ? ' class="on"' : ''}>` : ''}</span>`;
+    },
+  };
+  document.addEventListener('error', ev => {
+    const t = ev.target;
+    if (t && t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('tlogo')) {
+      remember(safeImg(t.getAttribute('src')), false); t.remove();
+    }
+  }, true);
+  document.addEventListener('load', ev => {
+    const t = ev.target;
+    if (t && t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('tlogo')) {
+      remember(safeImg(t.getAttribute('src')), true); t.classList.add('on');
+    }
+  }, true);
+})();
+</script>
+<canvas id="swarm" aria-hidden="true"></canvas>
+<div class="page">
+<header>
+  <a class="brand" href="/" title="CRAWLCA home">
+    <img src="assets/brand/crawlca-mark-v3.svg" width="30" height="30" alt="" aria-hidden="true">
+    CRAWLCA SWARM + QUEEN
+  </a>
+  <nav class="nav room-nav" aria-label="Primary"><a data-nav="home" href="/" aria-current="page">Room</a><a data-nav="explorer" href="console.html">Explorer</a><a data-nav="sources" href="sources.html">Sources</a><details class="nav-resources"><summary>Resources</summary><div class="resources-menu"><a data-nav="technology" href="technology.html">Technology</a><button type="button" data-help>Help &amp; guide</button></div></details></nav>
+  <div class="hx loading" id="transport" style="color:rgba(255,255,255,.7)"><i></i><span class="ld"></span></div>
+  <div class="hbtns">
+    <button class="inv-btn ghost" type="button" data-help>Help</button>
+  </div>
+</header>
+
+<section class="cards" id="cards" aria-label="Swarm agents"></section>
+<section class="panel newca" id="newca" aria-label="First-seen contracts">
+  <div class="phead"><div class="t">NEW CONTRACTS / FIRST SEEN</div><div class="r ld" id="newSummary"></div></div>
+  <div class="newca-body">
+    <div class="flow"><svg id="flowSvg" viewBox="0 0 600 150" preserveAspectRatio="none" role="img" aria-label="First-seen contracts per chain, last 2 hours"></svg><div class="flow-legend" id="flowLegend"></div></div>
+    <ol class="feed" id="newFeed" aria-live="polite" aria-label="Latest first-seen contracts"><li class="fe-empty ld"></li></ol>
+  </div>
+</section>
+<section class="panel sh-panel" aria-label="Source health"><div class="phead"><div class="t">SOURCE HEALTH</div><div class="cyc pending" id="cycleRing" role="status" aria-label="Crawl cycle"><svg viewBox="0 0 28 28" aria-hidden="true"><circle class="cyc-b" cx="14" cy="14" r="11"/><circle class="cyc-p" cx="14" cy="14" r="11"/></svg><span class="cyc-t ld"></span></div><div class="r ld" id="sourceHealthSummary"></div></div><div class="lanes" id="lanes" aria-label="Source requests this crawl cycle and last 2 hours"></div><div id="sourceHealth" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:16px"></div></section>
+
+<section class="panel sites-panel" aria-label="Source sites">
+  <div class="phead"><div class="t">SOURCE SITES / SPIDER INTAKE</div><div class="r">Real source responses and saved snapshots · spiders illustrate the data already received</div></div>
+  <div class="site-grid" id="siteGrid"></div>
+</section>
+
+<section class="jev-room" aria-labelledby="jev-title">
+  <div class="jev-heading">
+    <div><p class="jev-eyebrow">TYPESAFE / SYSTEM ONE</p><h2 id="jev-title">Jev decision room.</h2><p>Source evidence. Structured review decisions.</p></div>
+    <div class="jev-meta"><span class="jev-model-status" id="jev-model-status" role="status">JEV DECISION LAYER</span><a class="jev-link" href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener noreferrer">About Jev by TypeSafe ↗</a></div>
+  </div>
+<div class="hero" id="hero">
+  <div id="room3d" aria-label="3D CrawlCA source snapshot and Jev decision workflow"></div>
+  <div class="labels" id="labels3d"></div>
+  <div class="scan"></div>
+  <div class="hud"><button class="act" data-chain="all">ALL</button><button data-chain="SOL">SOL</button><button data-chain="BNB">BNB</button><button data-chain="RH">RH</button><button data-chain="BASE">BASE</button><button data-chain="ETH">ETH</button><button id="camReset">RESET</button></div>
+  <div class="nogl">WebGL unavailable · telemetry panels remain live</div>
+  <div class="cap"><span id="caption">QUEEN / waiting for swarm telemetry</span><span>DATA DISPLAY ANIMATION</span></div>
+</div>
+  <ol class="jev-flow" aria-label="Jev source-review workflow">
+    <li class="jev-step"><div class="jev-step-top"><span>01</span> SCENE SNAPSHOT <svg viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 8h20M15 2l6 6-6 6"/></svg></div><h3 class="ld" id="jev-input-count"></h3><p>Loaded contracts, market metrics and source freshness. Chain filters change this view only; they do not rerun Jev.</p><p class="jev-input-status ld" id="jev-input-status"></p></li>
+    <li class="jev-step"><div class="jev-step-top"><span>02</span> JEV DECISION LAYER <svg viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 8h20M15 2l6 6-6 6"/></svg></div><h3>One state. Defined outcomes.</h3><p>Evaluate source evidence quality and inspection priority across the server snapshot.</p><p class="jev-input-status ld" id="jev-model-detail" style="color:var(--violet)"></p></li>
+    <li class="jev-step"><div class="jev-step-top"><span>03</span> TYPED OUTPUT</div><h3>Next data-review route.</h3><p id="jev-result-state">No result yet</p><div class="jev-output"><span>route <b id="jev-route">—</b></span><span>selected route probability <b id="jev-probability">—</b></span></div><p class="jev-result-meta" id="jev-result-scope">Analysis scope: all chains</p><p class="jev-result-meta" id="jev-result-time"></p><p class="jev-result-meta" id="jev-result-model"></p></li>
+  </ol>
+  <details class="jev-explain"><summary>How Jev fits this room</summary><p>Jev is TypeSafe’s System One model for structured decisions. It evaluates source evidence quality and inspection priority, returning an inspect, watch or defer route for data review. Results describe the full server snapshot and retain their analysis time and scope; the scene’s chain filter does not change them. Existing Signal scores remain local heuristics, and robots visualize data flow. This page reads saved results; it does not trigger inference or automatically trade or execute the suggested route.</p></details>
+</section>
+
+<section class="panel pipe-panel" aria-label="Live crawl pipeline">
+  <div class="phead"><div class="t">SOURCE REQUESTS / VISUAL TOURS</div><div class="r" id="pipeCounts">0 completed source checks · 0 rows received</div></div>
+  <div class="stages" id="pipeStages"></div>
+  <div class="plog-h"><span>time</span><span>kind</span><span>source</span><span>request</span><span>elapsed</span><span>result</span><span>stage</span></div>
+  <div class="plog" id="pipeLog"></div>
+  <div class="pnote">LIVE = server request event · SNAPSHOT = existing data. Spider movement and desk tours are visual effects; no AI analysis or new crawl is performed by an animation.</div>
+</section>
+
+<section class="panel pair">
+  <div>
+    <div class="ptitle">LOADED SNAPSHOT / ROWS PER SOURCE</div>
+    <div class="chart">
+      <div class="row" style="top:32px">
+        <div class="lab" style="color:var(--pink)">LAUNCHPAD</div>
+        <div class="track" id="trkL"><div class="num" id="numL" style="left:0;color:var(--pink)">0</div></div>
+        <div class="side" style="color:var(--pink)" id="sideL">— rows</div>
+      </div>
+      <div class="row" style="top:100px">
+        <div class="lab" style="color:var(--cyan)">DEX / FEEDS</div>
+        <div class="track" id="trkD"><div class="num" id="numD" style="left:0;color:var(--cyan)">0</div></div>
+        <div class="side" style="color:var(--cyan)" id="sideD">— rows</div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+  <div class="profit">
+    <div class="who">CRAWLCA-01 / QUEEN</div>
+    <div class="big" id="bigLiq">$0</div>
+    <div class="at">TRACKED LIQUIDITY</div>
+    <div class="n" id="liqNote">SUM OF KNOWN MARKET LIQUIDITY</div>
+    <div class="n" style="margin-top:12px">UNKNOWN METRICS ARE NOT GUESSED</div>
+  </div>
+</section>
+
+<section class="grid2">
+  <div class="panel">
+    <div class="phead"><div class="t">QUEEN / CA LAB</div><div class="r ld" id="labMode"></div></div>
+    <div class="lab-top">
+      <div class="rv">
+        <span id="topLogo"></span>
+        <div style="min-width:0"><b id="topSym">—</b><small id="topCa">TOP SIGNAL CONTRACT</small></div>
+      </div>
+      <div class="kv"><small>heuristic signal</small><span id="topSig">—</span></div>
+      <div class="kv"><small>liquidity</small><span id="topLiq">—</span></div>
+      <div class="kv"><small>source</small><span id="topSrc">—</span></div>
+    </div>
+    <div class="tabs" id="tabs">
+      <button data-i="0" class="act">SIGNAL</button><button data-i="1">LIQUIDITY</button><button data-i="2">CHAINS</button><button data-i="3">RISK</button>
+    </div>
+    <div class="schem" id="labNote">SNAPSHOT / HEURISTIC SIGNAL · NOT AI ANALYSIS</div>
+    <div class="labbody">
+      <div class="labmain"><svg id="labSvg" viewBox="0 0 500 200" preserveAspectRatio="none" role="img" aria-label="CA lab chart"></svg></div>
+      <div class="minis">
+        <div class="mini"><small>fresh / 15m</small><svg viewBox="0 0 110 56" preserveAspectRatio="none" id="miniFresh"></svg></div>
+        <div class="mini"><small>adapters</small><svg viewBox="0 0 110 56" preserveAspectRatio="none" id="miniSrc"></svg></div>
+        <div class="mini"><small>risk mix</small><svg viewBox="0 0 110 56" preserveAspectRatio="none" id="miniRisk"></svg></div>
+      </div>
+    </div>
+    <div class="cost" id="topList"></div>
+  </div>
+
+  <div class="panel">
+    <div class="phead"><div class="t" style="font-family:var(--sans);font-weight:800">DATA FLOW VISUALIZATION</div><div class="r">DISPLAY ONLY</div></div>
+    <div class="chips">
+      <div class="chip" style="color:var(--pink);border-color:#7a2a55;background:#1a0712" id="chipL">LAUNCH —</div>
+      <div class="chip" style="color:var(--cyan);border-color:#1f6f96;background:#071a26" id="chipD">DEX —</div>
+      <div class="chip" style="color:var(--yellow);border-color:#7a5a1c;background:#1a1407" id="chipR">RISK —</div>
+    </div>
+    <div class="engine"><svg id="eng" viewBox="0 0 660 310" role="img" aria-label="crawl pipeline graph"></svg></div>
+    <div class="erow"><span>FRESH / UNDER 15M</span><b style="color:var(--green)" id="eFresh">—</b></div>
+    <div class="erow"><span>ADAPTERS / ONLINE</span><b style="color:var(--orange)" id="eOnline">—</b></div>
+    <div class="seq" id="seq"></div>
+  </div>
+</section>
+<div class="foot"><span>crawlca · swarm room · data from <b class="ld" id="footMode"></b></span><span>refresh 15s · updated <b id="footUpd">—</b></span></div>
+</div>
+<script>
+(() => {
+'use strict';
+// ---------- data model (same transport ladder as index.html: Rust API → cached real rows / unavailable) ----------
+const SOURCES = [
+  {name:'Pump.fun',kind:'launchpad',chain:'SOL',color:'#ff4da6'},{name:'Moonshot',kind:'launchpad',chain:'SOL',color:'#ff7ab8'},
+  {name:'Raydium',kind:'dex',chain:'SOL',color:'#67d9ff'},{name:'Meteora',kind:'dex',chain:'SOL',color:'#4ab0e8'},
+  {name:'Aerodrome',kind:'dex',chain:'BASE',color:'#4a8dff'},{name:'Uniswap',kind:'dex',chain:'ETH',color:'#c79bff'},
+  {name:'GMGN partner',kind:'discovery',chain:'RH',color:'#f5c96a'},{name:'GMGN official',kind:'discovery',chain:'MULTI',color:'#e0b050'},
+  {name:'Four.meme',kind:'launchpad',chain:'BNB',color:'#f4a24c'},{name:'Flap.sh',kind:'launchpad',chain:'BNB',color:'#d9884a'},
+  {name:'Robinhood launchpad',kind:'launchpad',chain:'RH',color:'#f2a7ff'},{name:'Robinhood Uniswap',kind:'dex',chain:'RH',color:'#9fd8ff'},
+];
+
+function short(a){ a=String(a||''); return a.length>10 ? `${a.slice(0,4)}…${a.slice(-4)}` : (a||'unknown'); }
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
+const fmt = n => n == null ? '—' : n >= 1e6 ? '$'+(n/1e6).toFixed(1)+'m' : n >= 1e3 ? '$'+Math.round(n/1e3)+'k' : '$'+n.toFixed(n<10?1:0);
+const ageLabel = value => {
+  const raw = Number(value); if (!Number.isFinite(raw) || raw <= 0) return 'unknown';
+  const s = Math.max(0, Math.floor(Date.now()/1000 - (raw > 1e12 ? raw/1000 : raw)));
+  return s < 60 ? 'now' : s < 3600 ? `${Math.floor(s/60)}m` : s < 86400 ? `${Math.floor(s/3600)}h` : `${Math.floor(s/86400)}d`;
+};
+const isFresh = t => t.seen === 'now' || (/^\d+m$/.test(t.seen) && parseInt(t.seen,10) < 15);
+const LOCAL = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+const apiPort = Number(new URLSearchParams(location.search).get('api'));
+const API = window.CRAWLCA_API || (LOCAL ? `http://127.0.0.1:${Number.isInteger(apiPort)&&apiPort>=1&&apiPort<=65535?apiPort:8788}/api` : '/api');
+if(LOCAL) document.querySelector('a.brand').setAttribute('href','room.html');
+if(LOCAL&&apiPort) document.querySelectorAll('a[href="index.html"],a[href="console.html"],a[href="room.html"]').forEach(a=>{a.href=`${a.getAttribute('href')}?api=${apiPort}`;});
+
+window.CRAWLCA_API_BASE = API;
+const S = { tokens: [], sourceState: new Map(), mode: 'loading', stats: {}, syncing: false, events: [], chain: 'all', labTab: 0, selected: null, hasRealData:false, remoteCrawling:false, streamState:'connecting', error:'' };
+window.crawlcaRoomSources = SOURCES;
+window.crawlcaRoomLookup = (chain, address) => S.tokens.find(t => t.chain === chain && t.full === address) || null;
+window.crawlcaRoomSelect = (chain, address) => { S.selected = `${chain}:${address}`; render(); };
+const J = { state:null, result:null, lastRead:0, attempted:false, syncing:false, error:'' };
+
+function liveToken(t){
+  const kind = t.sourceKind || 'unknown', symbol = t.symbol || 'CA', address = t.address || '';
+  return { symbol, name:t.name||symbol, full:address||'unknown', ca:short(address), source:t.source||'DEX', chain:String(t.chain||'SOL').toUpperCase(),
+    dataStatus:t.dataStatus||'unverified',dataUpdatedAt:num(t.dataUpdatedAt),mcap:num(t.mcap), fdv:num(t.fdv), liq:num(t.liquidity), raw:t.raw || null, image:window.crawlcaLogo.safeImg(t.image), vol:num(t.volume5m), holders:num(t.holders), signal:num(t.signal), risk:['low','med','high'].includes(t.risk)?t.risk:'unknown', seenAt:num(t.seenAt), seen:t.seenAt?ageLabel(t.seenAt):t.seen||'unknown', type:kind };
+}
+const tokenKey = t => `${t.chain}:${t.full}`;
+const displayTokens = () => S.tokens.filter(t => S.chain==='all'||t.chain===S.chain).map(t=>({...t,seen:t.seenAt?ageLabel(t.seenAt):t.seen}));
+async function getJson(url, opts = {}, timeoutMs = 12000){
+  const controller = new AbortController(), timer = setTimeout(()=>controller.abort(),timeoutMs);
+  try { const r = await fetch(url, {...opts,cache:'no-store',signal:controller.signal}); if(!r.ok)throw new Error(`HTTP ${r.status}`);return await r.json(); }
+  catch(error){throw new Error(error.name==='AbortError'?`Request timed out after ${timeoutMs/1000}s`:error.message||String(error));}
+  finally{clearTimeout(timer);}
+}
+
+// ---------- browser snapshot cache: one compact copy of the last good sync, shown on the next visit ----------
+const CACHE_KEY='crawlca.room.snapshot.v1', CACHE_MAX_CHARS=192*1024, CACHE_MAX_AGE=24*3600;
+const CACHE_FIELDS=['symbol','name','address','chain','source','sourceKind','mcap','fdv','liquidity','volume5m','holders','signal','risk','seen','seenAt','image','dataStatus','dataUpdatedAt'];
+function saveSnapshot(tok,stats,srcs){
+  try{
+    let rows=tok.map(t=>Object.fromEntries(CACHE_FIELDS.filter(k=>t[k]!=null).map(k=>[k,t[k]])));
+    // Halve the rows (API order is kept) until the snapshot fits the storage budget.
+    for(;;){
+      const json=JSON.stringify({v:1,savedAt:Math.floor(Date.now()/1000),tokens:rows,stats:stats||null,sources:Array.isArray(srcs)?srcs:null});
+      if(json.length<=CACHE_MAX_CHARS){localStorage.setItem(CACHE_KEY,json);return;}
+      if(rows.length<=1){localStorage.removeItem(CACHE_KEY);return;}
+      rows=rows.slice(0,Math.floor(rows.length/2));
+    }
+  }catch{}
+}
+function loadSnapshot(){
+  try{
+    const snap=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+    if(!snap||snap.v!==1||!Array.isArray(snap.tokens))return;
+    if(!(Date.now()/1000-snap.savedAt<CACHE_MAX_AGE)){localStorage.removeItem(CACHE_KEY);return;}
+    const tokens=snap.tokens.map(liveToken).filter(t=>t.full!=='unknown');if(!tokens.length)return;
+    S.tokens=tokens;S.mode='cached';S.hasRealData=true;S.cachedAt=snap.savedAt;S.stats=snap.stats||{};
+    S.updated=snap.stats?.updatedAt?new Date(snap.stats.updatedAt*1000):null;
+    if(Array.isArray(snap.sources))S.sourceState=new Map(snap.sources.map(source=>[source.name,{...source,count:source.activity?.count,cached:true}]));
+  }catch{}
+}
+const JEV_ROUTES = ['inspect','watch','defer'];
+function validateJev(value){
+  const stamp = v => Number.isSafeInteger(v) && v >= 0;
+  const probability = v => typeof v==='number' && Number.isFinite(v) && v>=0 && v<=1;
+  if(!value || typeof value.configured!=='boolean' || typeof value.inProgress!=='boolean'
+    || !['disabled','waiting','running','ready','error'].includes(value.status)
+    || !Number.isFinite(value.intervalSeconds) || value.intervalSeconds<=0
+    || !['lastAttemptAt','lastSuccessAt','nextRunAt'].every(key=>stamp(value[key]))
+    || !(value.error===null || typeof value.error==='string'))throw new Error('Invalid Jev status response');
+  const r=value.result;
+  if(r!==null && (!r || typeof r.model!=='string' || !r.model.startsWith('jev-') || r.model.length<=4 || r.model.length>80 || /[^A-Za-z0-9_.-]/.test(r.model) || r.scope!=='all'
+    || !stamp(r.evaluatedAt) || !r.evaluatedAt || !stamp(r.snapshotAt) || !r.snapshotAt || !stamp(r.rowCount) || !r.rowCount
+    || !JEV_ROUTES.includes(r.route?.choice) || !probability(r.route?.confidence)
+    || Object.keys(r.route?.probabilities||{}).length!==3 || !JEV_ROUTES.every(key=>probability(r.route?.probabilities?.[key]))
+    || Math.abs(JEV_ROUTES.reduce((sum,key)=>sum+r.route.probabilities[key],0)-1)>0.001
+    || JEV_ROUTES.some(key=>r.route.probabilities[key]>r.route.probabilities[r.route.choice]+1e-9)))throw new Error('Invalid Jev result');
+  if(value.status==='ready' && (!value.configured || !r))throw new Error('Jev ready status has no valid result');
+  return value;
+}
+async function syncJev(){
+  if(J.syncing)return;J.syncing=true;
+  try {
+    const state=validateJev(await getJson(`${API}/jev`,{method:'GET'}));
+    J.state=state;J.result=state.configured?state.result:null;J.lastRead=Date.now()/1000;J.error='';
+  } catch(error){J.error=error.message||'Jev status unavailable';}
+  finally{J.attempted=true;J.syncing=false;render();}
+}
+function jevView(){
+  const state=J.state,r=J.result,now=Date.now()/1000;
+  const unread=!!J.error || (J.lastRead>0 && now-J.lastRead>45);
+  const aged=!!r && now-r.evaluatedAt>Math.max(60,(state?.intervalSeconds||60)*2);
+  // Integration branding is separate from request health. Failed reads or
+  // evaluations quietly retain a validated result and its original timestamp.
+  let label=r?'JEV INTEGRATED':'JEV DECISION LAYER',color=r?'#69f0b2':'#67d9ff';
+  let detail=r?'Source evidence evaluated · structured review result':'Source review · awaiting a result';
+  if(!unread && state){
+    if(!state.configured || state.status==='disabled'){detail='Structured source-review decisions';}
+    else if(state.inProgress || state.status==='running'){label='JEV PROCESSING';color='#67d9ff';detail='Evaluating the server snapshot · all chains';}
+  }
+  const previous=!!r && (unread || aged || state?.status!=='ready' || state?.inProgress);
+  return {label,color,detail,result:r,previous,probability:r?r.route.probabilities[r.route.choice]:null};
+}
+const sourceColor = status => status==='online'?'var(--green)':status==='crawling'?'var(--cyan)':status==='error'?'#ff6e83':['degraded','stale','key required'].includes(status)?'var(--yellow)':'var(--dim)';
+function sourceReason(source, current=S.sourceState.get(source.name)||{}){
+  const parts=[], keys={'GMGN official':'GMGN_API_KEY','Flap.sh':'BITQUERY_API_KEY'};
+  if(source.name==='Moonshot')parts.push('Moonshot / Moonit launchpad');
+  if(current.status==='key required')parts.push(`Configure ${current.requiredKey||keys[source.name]||'the provider key'} on the server`);
+  const error=current.activity?.error||current.error||current.message;if(error)parts.push(String(error));
+  if(current.cached||current.activity?.cached)parts.push('last successful snapshot retained');
+  if(current.activity?.lastSuccessAt)parts.push(`last success ${new Date(current.activity.lastSuccessAt*1000).toLocaleTimeString()}`);
+  if(current.transport||current.activity?.transport)parts.push(current.transport||current.activity.transport);
+  if(!parts.length&&(current.status||'waiting')==='waiting')parts.push('No source rows available yet');
+  return parts.join(' · ');
+}
+function renderSourceHealth(){
+  const online=SOURCES.filter(source=>S.sourceState.get(source.name)?.status==='online').length;
+  $('#sourceHealthSummary').textContent=S.mode==='loading'?'':`${online}/${SOURCES.length} online · SSE ${S.streamState}${S.error?' · '+S.error:''}`;
+  $('#sourceHealth').innerHTML=SOURCES.map(source=>{
+    const current=S.sourceState.get(source.name)||{status:'waiting'},status=current.status||'waiting',reason=sourceReason(source,current);
+    return `<div><b>${window.crawlcaLogo.platform(source.name)}${esc(source.name)}</b><span style="float:right;color:${sourceColor(status)}">${esc(status)}</span><small style="display:block;margin-top:5px;color:var(--dim);overflow-wrap:anywhere">${esc(reason)}</small></div>`;
+  }).join('');
+}
+
+async function sync(){
+  if(S.syncing)return;S.syncing=true;render();
+  try {
+    const [tok,stats,srcs]=await Promise.all([getJson(`${API}/tokens?limit=400`).catch(error=>error),getJson(`${API}/stats`).catch(()=>null),getJson(`${API}/sources`).catch(()=>null)]);
+    if(Array.isArray(srcs))S.sourceState=new Map(srcs.map(source=>[source.name,{...source,count:source.activity?.count}]));
+    if(tok instanceof Error)throw tok;
+    if(!Array.isArray(tok))throw new Error('Invalid token snapshot');
+    S.tokens=tok.map(liveToken).filter(t=>t.full!=='unknown');S.mode='live';S.stats=stats||{};S.hasRealData=true;S.error='';
+    if(Array.isArray(srcs))S.remoteCrawling=srcs.some(source=>source.status==='crawling');
+    if(Array.isArray(srcs))S.sourceState=new Map(srcs.map(source=>[source.name,{...source,count:source.activity?.count}]));
+    else S.sourceState=new Map(SOURCES.map(source=>[source.name,{...S.sourceState.get(source.name),status:'stale',error:'Source health endpoint unavailable'}]));
+    S.updated=stats?.updatedAt?new Date(stats.updatedAt*1000):null;
+    saveSnapshot(tok,stats,srcs);
+  } catch(error) {
+    S.error=`API unavailable: ${error.message}`;
+    S.mode=S.hasRealData?'stale':'unavailable';
+    S.sourceState=new Map(SOURCES.map(source=>{const old=S.sourceState.get(source.name)||{};return [source.name,{...old,status:old.status==='key required'?'key required':S.hasRealData?'stale':'unavailable',cached:S.hasRealData,activity:{...old.activity,error:error.message}}];}));
+  } finally {S.syncing=false;render();}
+}
+// ---------- agent cards ----------
+// Original spider-bot glyph: round body, eye strip and four leg pairs.
+const spider = c => `<svg class="ico" viewBox="0 0 28 22" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round"><path d="M9 9L4 4L1 7M9 11L3 10L1 13M19 9L24 4L27 7M19 11L25 10L27 13M10 14L5 18L3 21M18 14L23 18L25 21"/><ellipse cx="14" cy="11" rx="6" ry="5.5" fill="${c}" stroke="none"/><rect x="10" y="9" width="8" height="3" rx="1.5" fill="#0b1020" stroke="none"/><circle cx="12" cy="10.5" r=".9" fill="#fff" stroke="none"/><circle cx="16" cy="10.5" r=".9" fill="#fff" stroke="none"/></svg>`;
+const globe = c => `<svg class="ico" viewBox="0 0 28 22" fill="none" stroke="${c}" stroke-width="1.6"><circle cx="14" cy="11" r="8.5"/><path d="M5.5 11h17M14 2.5v17"/><ellipse cx="14" cy="11" rx="4" ry="8.5"/></svg>`;
+const crown = c => `<svg class="ico" viewBox="0 0 28 22" fill="none" stroke="${c}" stroke-width="1.7" stroke-linejoin="round"><path d="M5 17L3 6l6 5 5-7 5 7 6-5-2 11z"/><path d="M5 20h18"/></svg>`;
+const AGENTS = [
+  {id:'scout',n:'SCOUT',tag:'SPIDER 01',sub:'launchpad discoveries',c:'#e9eef8',ic:spider('#e9eef8')},
+  {id:'index',n:'INDEX',tag:'SPIDER 02',sub:'contract addresses indexed',c:'#67d9ff',ic:spider('#67d9ff')},
+  {id:'pairs',n:'PAIRS',tag:'SPIDER 03',sub:'DEX contract rows loaded',c:'#c79bff',ic:spider('#c79bff')},
+  {id:'fresh',n:'FRESH',tag:'SPIDER 04',sub:'seen under 15 minutes',c:'#69f0b2',ic:spider('#69f0b2')},
+  {id:'liq',n:'LIQUIDITY',tag:'SPIDER 05',sub:'known market liquidity',c:'#f4a24c',ic:spider('#f4a24c')},
+  {id:'risk',n:'RISK',tag:'SPIDER 06',sub:'review / includes not assessed',c:'#ff6e83',ic:spider('#ff6e83')},
+  {id:'crawler',n:'CRAWLER',tag:'SOURCE',sub:'adapters online',c:'#67d9ff',ic:globe('#67d9ff')},
+  {id:'queen',n:'QUEEN',tag:'NODE',sub:'top signal contract',c:'#f5c96a',ic:crown('#f5c96a')},
+];
+const cardsEl = $('#cards');
+cardsEl.innerHTML = AGENTS.map((a,i) => `<button class="card" data-i="${i}" style="color:${a.c}" aria-label="${a.n} agent">
+  <div class="top">${a.ic}<span class="name">${a.n}</span><span class="tag">${a.tag}</span></div>
+  <div class="glitch"></div><div class="sub">${a.sub}</div><div class="val" id="cv${i}">—</div>
+  <div class="bar"><i style="width:0" id="cb${i}"></i></div><div class="foot ld" id="cf${i}"></div></button>`).join('');
+const cardEls = [...cardsEl.children];
+
+let focusIdx = 0, focusTimer = null;
+function focus(i, manual){
+  focusIdx = i; cardEls.forEach((e,k) => e.classList.toggle('on', k === i));
+  window.crawlcaRoomFocus && window.crawlcaRoomFocus(i);
+  $('#caption').textContent = captionFor(i);
+  if (manual) { clearInterval(focusTimer); focusTimer = setInterval(cycle, 2600); }
+}
+const cycle = () => focus((focusIdx + 1) % AGENTS.length);
+cardEls.forEach((e,i) => e.addEventListener('click', () => focus(i, true)));
+
+// ---------- derived metrics ----------
+function metrics(){
+  const t = displayTokens();
+  const launch = t.filter(x => x.type === 'launchpad'), dex = t.filter(x => x.type === 'dex');
+  const liqVals = t.map(x => x.liq).filter(v => v != null);
+  const online = SOURCES.filter(s => (S.sourceState.get(s.name)||{}).status === 'online').length;
+  const top = t.slice().sort((a,b) => (b.signal??-1) - (a.signal??-1))[0] || null;
+  return {
+    t, launch, dex, top, online,
+    indexed: t.length,
+    fresh: t.filter(isFresh).length,
+    risk: t.filter(x => x.risk !== 'low').length,
+    liq: liqVals.length ? liqVals.reduce((a,b) => a+b, 0) : null,
+    liqKnown: liqVals.length,
+  };
+}
+function captionFor(i){
+  const m = metrics(), pick = m.t[(Date.now()/2600|0) % Math.max(1, m.t.length)];
+  const cap = [
+    () => pick ? `SCOUT / snapshot row ${pick.symbol} from ${pick.source} · ${pick.chain}` : 'SCOUT / waiting for launches',
+    () => `INDEX / ${m.indexed.toLocaleString()} contract addresses loaded`,
+    () => `PAIRS / ${m.dex.length} DEX contract rows`,
+    () => `FRESH / ${m.fresh} CAs seen in the last 15 minutes`,
+    () => `LIQUIDITY / ${fmt(m.liq)} across ${m.liqKnown} markets with known depth`,
+    () => `REVIEW / ${m.risk} contracts · includes unknown / not assessed`,
+    () => `CRAWLER / ${m.online}/${SOURCES.length} source adapters online · ${S.mode}`,
+    () => m.top ? `QUEEN / top signal ${m.top.symbol} · ${m.top.signal??'—'}/100 heuristic · ${m.top.ca}` : 'QUEEN / awaiting signal',
+  ];
+  return S.remoteCrawling ? 'SERVER / source crawl in progress' : S.syncing ? 'DISPLAY / refreshing source snapshot' : cap[i]();
+}
+
+function renderJevInput(m){
+  const count=$('#jev-input-count'),status=$('#jev-input-status');
+  if(!S.hasRealData){
+    count.textContent=S.mode==='unavailable'?'Source data unavailable':'';
+    status.textContent=S.mode==='unavailable'?'INPUT / API unavailable':'';
+    return;
+  }
+  const cached=m.t.filter(t=>t.dataStatus!=='live').length;
+  count.textContent=`${m.indexed.toLocaleString()} loaded row${m.indexed===1?'':'s'} · ${S.chain==='all'?'all chains':S.chain}`;
+  status.textContent=S.mode==='stale'?'INPUT / retained snapshot · API unavailable'
+    :S.mode==='cached'?'INPUT / saved browser snapshot · refreshing'
+    :S.remoteCrawling?'INPUT / source collection in progress'
+    :S.syncing?'INPUT / refreshing saved snapshot'
+    :`INPUT / ${m.online}/${SOURCES.length} sources online${cached?` · ${cached} cached / unverified rows`:''}`;
+}
+function renderJev(){
+  const view=jevView(),r=view.result,time=seconds=>new Date(seconds*1000).toLocaleString();
+  const badge=$('#jev-model-status');badge.textContent=view.label;badge.style.color=view.color;
+  $('#jev-model-detail').textContent=J.attempted||J.state||J.result?view.detail:'';
+  $('#jev-route').textContent=r?r.route.choice.toUpperCase():'—';
+  $('#jev-probability').textContent=r?`${(view.probability*100).toFixed(1)}%`:'—';
+  $('#jev-result-state').textContent=r?`${view.previous?'Last result':'Latest result'} · ${time(r.evaluatedAt)}`:'No result yet';
+  $('#jev-result-scope').textContent=r?`Analyzed full snapshot: ${r.rowCount.toLocaleString()} rows · all chains`:'Analysis scope: all chains';
+  $('#jev-result-time').textContent=r?`Source snapshot: ${time(r.snapshotAt)}`:'';
+  $('#jev-result-model').textContent=r?`Model: ${r.model}`:'';
+  return {label:view.label,color:view.color};
+}
+
+// ---------- render ----------
+const MODE = { live:['rust api','var(--green)'], stale:['cached real data · stale','var(--yellow)'], loading:['','var(--dim)'], cached:['saved snapshot','var(--yellow)'], unavailable:['data unavailable','var(--yellow)'] };
+function render(){
+  const m = metrics();
+  renderSourceHealth();
+  let [ml, mc] = MODE[S.mode];
+  if(S.mode==='cached'){const age=ageLabel(S.cachedAt);ml=`saved snapshot · ${age==='now'?'just now':age+' ago'} · refreshing`;}
+  if(S.mode==='live'&&(S.tokens.some(t=>t.dataStatus!=='live')||[...S.sourceState.values()].some(source=>source.cached||source.activity?.cached))){ml='rust api · includes cached / unverified rows';mc='var(--yellow)';}
+  // Header indicator is binary: API online, or loading (first load, saved snapshot, retrying).
+  const apiOnline = S.mode==='live';
+  $('#transport').classList.toggle('loading', !apiOnline); $('#transport').style.color = apiOnline ? 'var(--green)' : 'rgba(255,255,255,.7)'; $('#transport span').textContent = apiOnline ? 'API online' : '';
+  $('#labMode').textContent = ml; $('#footMode').textContent = ml;
+  $('#footUpd').textContent = S.updated ? S.updated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+  const total = Math.max(1, m.t.length);
+  const vals = [
+    [`${m.launch.length} LAUNCH`, m.launch.length/total, m.launch[0] ? `snapshot ${m.launch[0].symbol} · ${m.launch[0].source}` : 'no launchpad rows'],
+    [m.indexed.toLocaleString(), Math.min(1, m.indexed/120), `${S.mode} snapshot`],
+    [`${m.dex.length} DEX CAs`, m.dex.length/total, 'liquidity · volume · mcap'],
+    [`${m.fresh} NEW`, m.fresh/total, 'source timestamp window'],
+    [fmt(m.liq), m.liqKnown/total, `${m.liqKnown} markets with depth`],
+    [`${m.risk} REVIEW`, m.risk/total, 'med + high + unknown / not assessed'],
+    [`${m.online}/${SOURCES.length}`, m.online/SOURCES.length, ['loading','unavailable'].includes(S.mode)?'adapters not reached':S.mode==='stale'?'source status stale':S.mode==='cached'?'saved source status':'source routes'],
+    [m.top ? m.top.symbol : '—', m.top ? m.top.signal/100 : 0, m.top ? `${m.top.signal??'—'}/100 heuristic · ${m.top.chain}` : 'awaiting signal'],
+  ];
+  vals.forEach(([v, w, f], i) => { if (i === 7 && m.top) $(`#cv${i}`).innerHTML = `${window.crawlcaLogo.token(m.top, '#f5c96a')} ${esc(v)}`; else $(`#cv${i}`).textContent = v; $(`#cb${i}`).style.width = Math.round(Math.max(0, Math.min(1, w))*100) + '%'; $(`#cf${i}`).textContent = S.mode==='loading' ? '' : f; });
+  renderThroughput(m); renderLab(m); renderEngine(m); renderJevInput(m);
+  const jev=renderJev();
+  const detail = { tokens: m.t.slice(0, 400), sources: SOURCES.map(s => ({...s,...S.sourceState.get(s.name),status:S.sourceState.get(s.name)?.status||'waiting',reason:sourceReason(s),count:countFor(s.name)})), mode:S.mode, syncing:S.syncing, crawling:S.remoteCrawling, freshnessLabel:ml, chain:S.chain, jev };
+  window.crawlcaRoomState = detail;
+  window.dispatchEvent(new CustomEvent('crawlcaRoomState', { detail }));
+}
+function countFor(name){ return displayTokens().filter(t => t.source === name).length; }
+// ---------- source throughput (stacked bars per adapter) ----------
+function renderThroughput(m){
+  const groups = { L: SOURCES.filter(s => s.kind === 'launchpad'), D: SOURCES.filter(s => s.kind !== 'launchpad') };
+  const known = new Set(SOURCES.map(s => s.name));
+  const otherDex = m.t.filter(t => !known.has(t.source) && t.type !== 'launchpad').length;
+  const rows = {
+    L: groups.L.map(s => ({name:s.name, color:s.color, n:countFor(s.name)})),
+    D: groups.D.map(s => ({name:s.name, color:s.color, n:countFor(s.name)})).concat(otherDex ? [{name:'other dex', color:'#3a5a7a', n:otherDex}] : []),
+  };
+  const sum = r => r.reduce((a,b) => a + b.n, 0);
+  const max = Math.max(1, sum(rows.L), sum(rows.D)) * 1.08;
+  ['L','D'].forEach(k => {
+    const trk = $(`#trk${k}`); let x = 0;
+    trk.querySelectorAll('.seg').forEach(e => e.remove());
+    rows[k].filter(r => r.n > 0).forEach(r => {
+      const seg = document.createElement('div'); seg.className = 'seg'; seg.title = `${r.name} · ${r.n} rows`;
+      seg.style.cssText = `left:${x/max*100}%;width:${r.n/max*100}%;background:${r.color}`;
+      trk.insertBefore(seg, trk.firstChild); x += r.n;
+    });
+    const n = $(`#num${k}`); n.style.left = `${x/max*100}%`; n.textContent = `${x} rows`;
+    const top = rows[k].slice().sort((a,b) => b.n - a.n)[0];
+    $(`#side${k}`).textContent = top && top.n ? `${top.name} leads · ${Math.round(top.n/Math.max(1,x)*100)}%` : 'no rows yet';
+  });
+  $('#legend').innerHTML = rows.L.concat(rows.D).filter(r => r.n > 0).map(r => `<span><b style="background:${r.color}"></b>${window.crawlcaLogo.platform(r.name)}${esc(r.name)} ${r.n}</span>`).join('');
+  $('#bigLiq').textContent = m.liq == null ? '—' : '$'+Math.round(m.liq).toLocaleString('en-US');
+  $('#liqNote').textContent = m.liq == null ? 'NO MARKET HAS KNOWN LIQUIDITY YET' : `${m.liqKnown} OF ${m.t.length} MARKETS REPORT DEPTH`;
+}
+// ---------- CA lab ----------
+const grid = () => { let g=''; for (let x=0;x<=500;x+=50) g+=`<line x1="${x}" y1="0" x2="${x}" y2="200" stroke="#0f1828"/>`; for (let y=0;y<=200;y+=40) g+=`<line x1="0" y1="${y}" x2="500" y2="${y}" stroke="#0f1828"/>`; return g; };
+const RISKC = {low:'#69f0b2', med:'#f5c96a', high:'#ff6e83', unknown:'#76839c'};
+const RISK_KEYS = ['low','med','high','unknown'];
+const riskLabel = key => key==='unknown'?'NOT ASSESSED':key.toUpperCase();
+function riskCounts(tokens){
+  const counts={low:0,med:0,high:0,unknown:0};
+  tokens.forEach(token=>counts[RISK_KEYS.includes(token.risk)?token.risk:'unknown']++);
+  return counts;
+}
+function renderLab(m){
+  const sel = S.selected && m.t.find(t => tokenKey(t) === S.selected) || m.top;
+  if (!sel) { $('#topSym').textContent='No contracts';$('#topLogo').innerHTML='';$('#topCa').textContent=S.mode==='loading'?'':'no source rows';$('#topSig').textContent='—';$('#topLiq').textContent='—';$('#topSrc').textContent='—';$('#topCa').title=''; }
+  if (sel) {
+    $('#topSym').textContent = `${sel.symbol} · ${sel.name}`.slice(0, 32); $('#topLogo').innerHTML = window.crawlcaLogo.token(sel, '#f5c96a').replace('class="tlogo"', 'class="tlogo lg"'); $('#topCa').textContent = `${sel.ca} · ${sel.chain} · seen ${sel.seen} · ${S.mode==='stale'?'stale cache':sel.dataStatus}${sel.dataUpdatedAt?' · data '+new Date(sel.dataUpdatedAt*1000).toLocaleTimeString():''}`;
+    $('#topCa').title=`${sel.full} · ${sel.dataStatus}${sel.dataUpdatedAt?' · source updated '+new Date(sel.dataUpdatedAt*1000).toLocaleString():''}`;
+    $('#topSig').textContent = `${sel.signal??'—'}/100`; $('#topLiq').textContent = fmt(sel.liq); $('#topSrc').innerHTML = window.crawlcaLogo.platform(sel.source) + esc(sel.source);
+  }
+  const top = m.t.slice().sort((a,b) => b.signal - a.signal).slice(0, 10);
+  let body = '';
+  if (S.labTab === 0) {
+    $('#labNote').textContent = 'SNAPSHOT / HEURISTIC SIGNAL · NOT AI ANALYSIS';
+    const w = 500 / Math.max(1, top.length);
+    body = top.map((t,i) => { const h = t.signal/100*150, hot = sel && tokenKey(t) === tokenKey(sel);
+      return `<rect x="${i*w+6}" y="${178-h}" width="${w-12}" height="${h}" fill="${hot?'#f5c96a':t.type==='launchpad'?'#ff4da6':'#67d9ff'}" opacity="${hot?1:.85}"/><text x="${i*w+w/2}" y="194" fill="#5d6b85" font-size="9" text-anchor="middle">${esc(t.symbol.slice(0,6))}</text><text x="${i*w+w/2}" y="${172-h}" fill="#e9eef8" font-size="9" text-anchor="middle">${t.signal??'—'}</text>`; }).join('');
+  } else if (S.labTab === 1) {
+    $('#labNote').textContent = 'CUMULATIVE KNOWN LIQUIDITY / SORTED BY DEPTH';
+    const rows = m.t.filter(t => t.liq != null).sort((a,b) => b.liq - a.liq).slice(0, 24); let acc = 0; const tot = rows.reduce((a,b) => a+b.liq, 0),scale=Math.max(1,tot);
+    const pts = rows.map((t,i) => { acc += t.liq; return `${(i+1)/Math.max(1,rows.length)*480+10},${180-acc/scale*150}`; });
+    body = rows.length ? `<polyline points="10,180 ${pts.join(' ')}" fill="none" stroke="#f4a24c" stroke-width="3"/><line x1="0" y1="30" x2="500" y2="30" stroke="#cfd6e2" stroke-dasharray="4 4"/><text x="14" y="24" fill="#f5c96a" font-size="11" font-weight="700">${fmt(tot)} TOTAL</text><text x="14" y="196" fill="#5d6b85" font-size="9">${rows.length} markets · deepest ${esc(rows[0].symbol)} ${fmt(rows[0].liq)}</text>` : `<text x="250" y="100" fill="#5d6b85" font-size="11" text-anchor="middle">no market reports liquidity yet</text>`;
+  } else if (S.labTab === 2) {
+    $('#labNote').textContent = 'CONTRACT ADDRESSES PER CHAIN';
+    const by = {}; m.t.forEach(t => by[t.chain] = (by[t.chain]||0) + 1);
+    const ent = Object.entries(by).sort((a,b) => b[1]-a[1]).slice(0, 6), mx = Math.max(1, ...ent.map(e => e[1]));
+    const CC = {SOL:'#c79bff',BNB:'#f5c96a',RH:'#f2a7ff',BASE:'#4a8dff',ETH:'#b9b8ff'};
+    body = ent.map(([c,n],i) => `<text x="10" y="${30+i*30}" fill="${CC[c]||'#67d9ff'}" font-size="11" font-weight="700">${esc(c)}</text><rect x="70" y="${18+i*30}" width="${n/mx*360}" height="16" fill="${CC[c]||'#67d9ff'}"/><text x="${80+n/mx*360}" y="${31+i*30}" fill="#e9eef8" font-size="10">${n}</text>`).join('');
+  } else {
+    $('#labNote').textContent = 'RISK MIX / LOW · MED · HIGH · UNKNOWN = NOT ASSESSED';
+    const c = riskCounts(m.t); const tot = Math.max(1, m.t.length); let x = 10;
+    body = RISK_KEYS.map(k => { const w = c[k]/tot*480, s = `<rect x="${x}" y="70" width="${w}" height="44" fill="${RISKC[k]}"/>${w>(k==='unknown'?135:65)?`<text x="${x+8}" y="98" fill="#060b14" font-size="12" font-weight="700">${riskLabel(k)} ${c[k]}</text>`:''}`; x += w; return s; }).join('') +
+      RISK_KEYS.map((k,i)=>`<text x="${10+i*122}" y="140" fill="${RISKC[k]}" font-size="9">${riskLabel(k)} ${c[k]}</text>`).join('') +
+      `<text x="10" y="166" fill="#76839c" font-size="10">Gray = unknown / not assessed. Other ratings are heuristics, not audits.</text>`;
+  }
+  $('#labSvg').innerHTML = grid() + body;
+  // minis
+  const fr = m.t.length ? m.fresh/m.t.length : 0;
+  $('#miniFresh').innerHTML = `<rect x="4" y="40" width="102" height="8" fill="#16223a"/><rect x="4" y="40" width="${102*fr}" height="8" fill="#69f0b2"/><text x="4" y="32" fill="#e9eef8" font-size="12" font-weight="700">${m.fresh}</text>`;
+  $('#miniSrc').innerHTML = SOURCES.map((s,i) => { const st = (S.sourceState.get(s.name)||{}).status; return `<rect x="${4+i*8.6}" y="${st==='online'?14:34}" width="6" height="${st==='online'?36:16}" fill="${st==='online'?s.color:'#1b2740'}"/>`; }).join('');
+  const rc = riskCounts(m.t); const rt = Math.max(1, m.t.length); let rx = 4;
+  $('#miniRisk').innerHTML = RISK_KEYS.map(k => { const w = rc[k]/rt*102, s = `<rect x="${rx}" y="22" width="${w}" height="20" fill="${RISKC[k]}"><title>${riskLabel(k)} ${rc[k]}</title></rect>`; rx += w; return s; }).join('') + `<text x="4" y="14" fill="#76839c" font-size="8">${rc.unknown} not assessed</text>`;
+  // top list
+  $('#topList').innerHTML = `<div class="ln hd"><span>top contracts / click to inspect</span><span>liquidity</span><span>heuristic</span></div>` +
+    top.slice(0, 5).map(t => `<div class="ln ${sel && tokenKey(t)===tokenKey(sel)?'sel':''}" data-ca="${esc(t.full)}" data-chain="${esc(t.chain)}" role="button" tabindex="0"><span>${window.crawlcaLogo.token(t, t.type==='launchpad'?'#ff4da6':'#67d9ff')} ${window.crawlcaLogo.platform(t.source)}${esc(t.symbol)} <em>${esc(t.ca)} · ${esc(t.source)}</em></span><b style="color:var(--cyan)">${fmt(t.liq)}</b><b style="color:${t.signal>=80?'var(--green)':t.signal>=60?'var(--cyan)':'var(--yellow)'}">${t.signal??'—'}</b></div>`).join('');
+}
+$('#topList').addEventListener('click', e => { const r = e.target.closest('[data-ca]'); if (!r) return; S.selected = `${r.dataset.chain}:${r.dataset.ca}`; render(); window.crawlcaSwarmInspect && window.crawlcaSwarmInspect(r.dataset.ca,r.dataset.chain); });
+$('#topList').addEventListener('keydown', e=>{if(e.key==='Enter'||e.key===' '){const row=e.target.closest('[data-ca]');if(row){e.preventDefault();row.click();}}});
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.labTab = +b.dataset.i; [...$('#tabs').children].forEach(x => x.classList.toggle('act', x === b)); render(); });
+// ---------- swarm engine ----------
+const eng = $('#eng'), C = {x:330, y:150};
+const EN = [
+  {n:'DISCOVER',x:330,y:22,c:'#ff4da6',ly:-8},{n:'METADATA',x:600,y:90,c:'#c79bff',ly:22},
+  {n:'MARKETS',x:600,y:228,c:'#67d9ff',ly:22},{n:'INDEX',x:330,y:296,c:'#69f0b2',ly:22},
+  {n:'RISK',x:60,y:228,c:'#ff6e83',ly:22},{n:'FEEDS',x:60,y:90,c:'#f4a24c',ly:22}];
+let es = `<defs><radialGradient id="gl"><stop offset="0" stop-color="#0e3550" stop-opacity=".7"/><stop offset="1" stop-color="#060b14" stop-opacity="0"/></radialGradient></defs><circle cx="330" cy="150" r="150" fill="url(#gl)"/>`;
+for (let k = 0; k < 6; k++) es += `<ellipse cx="330" cy="150" rx="${70+k*14}" ry="${110-k*12}" fill="none" stroke="#1b6a8a" stroke-opacity=".45" transform="rotate(${k*30} 330 150)"><animateTransform attributeName="transform" type="rotate" from="${k*30} 330 150" to="${k*30+(k%2?360:-360)} 330 150" dur="${18+k*4}s" repeatCount="indefinite"/></ellipse>`;
+EN.forEach((e,i) => { const mx = (e.x+C.x)/2, my = e.y < 150 ? e.y+40 : e.y-40;
+  es += `<path id="ep${i}" d="M${e.x},${e.y} Q${mx},${my} ${C.x},${C.y}" fill="none" stroke="${e.c}" stroke-width="1.6" stroke-opacity=".85"/>
+  <circle r="3" fill="${e.c}"><animateMotion id="am${i}" dur="${2+i*.35}s" repeatCount="indefinite"><mpath href="#ep${i}"/></animateMotion></circle>
+  <circle cx="${e.x}" cy="${e.y}" r="6" fill="#060b14" stroke="${e.c}" stroke-width="1.8"/>
+  <text x="${e.x}" y="${e.y+e.ly}" fill="${e.c}" font-size="10" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">${e.n}</text>`; });
+es += `<g id="sparks"></g><rect x="252" y="122" width="156" height="58" rx="4" fill="#0b1626" stroke="#8a9bb5" stroke-opacity=".7"/>
+<text x="330" y="148" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="IBM Plex Mono,monospace">CA → INDEX</text>
+<text x="330" y="167" fill="#67d9ff" font-size="9" text-anchor="middle" font-family="IBM Plex Mono,monospace" id="engCount">— contracts</text>`;
+eng.innerHTML = es;
+const sparks = $('#sparks'), SP = Array.from({length:40}, () => ({a:Math.random()*6.28, r:30+Math.random()*90, s:(Math.random()-.5)*.03}));
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS = 'http://www.w3.org/2000/svg';
+SP.forEach(p => { p.l = document.createElementNS(NS, 'line'); p.c = document.createElementNS(NS, 'circle');
+  p.l.setAttribute('x1', C.x); p.l.setAttribute('y1', C.y); p.l.setAttribute('stroke', '#2a9ac4'); p.l.setAttribute('stroke-opacity', '.18');
+  p.c.setAttribute('r', '1.8'); p.c.setAttribute('fill', '#bfeaff'); p.c.setAttribute('opacity', '.8'); sparks.append(p.l, p.c); });
+let spLast = 0;
+(function sp(ts){
+  if (ts - spLast > 33) { spLast = ts; const boost = S.syncing ? 3 : 1;
+    SP.forEach(p => { p.a += p.s*boost*2; const x = (C.x+Math.cos(p.a)*p.r*1.1).toFixed(1), y = (C.y+Math.sin(p.a)*p.r*.95).toFixed(1);
+      p.l.setAttribute('x2', x); p.l.setAttribute('y2', y); p.c.setAttribute('cx', x); p.c.setAttribute('cy', y); }); }
+  if (!reduce) requestAnimationFrame(sp); })(0);
+function renderEngine(m){
+  $('#chipL').textContent = `LAUNCH ${m.launch.length}`; $('#chipD').textContent = `DEX ${m.dex.length}`; $('#chipR').textContent = `REVIEW ${m.risk}`;
+  $('#engCount').textContent = `${m.indexed.toLocaleString()} contracts`;
+  $('#eFresh').textContent = `${m.fresh} CAs in snapshot`; $('#eOnline').textContent = `${m.online}/${SOURCES.length} adapters`;
+  [...$('#seq').children].forEach((segment,i)=>segment.classList.toggle('on',i<Math.round(m.online/SOURCES.length*28)));
+}
+const seq=$('#seq');seq.innerHTML='<i></i>'.repeat(28);seq.title='Source availability · segments show the online adapter proportion';
+
+// ---------- controls ----------
+document.querySelectorAll('.hud [data-chain]').forEach(b => b.addEventListener('click', () => {
+  S.chain = b.dataset.chain; document.querySelectorAll('.hud [data-chain]').forEach(x => x.classList.toggle('act', x === b)); render(); }));
+$('#camReset').addEventListener('click', () => window.crawlcaRoomResetCam && window.crawlcaRoomResetCam());
+// The 3D scene reports clicks on spiders/desks back to the dashboard.
+window.addEventListener('crawlcaRoomPick', e => { const i = Number(e.detail?.agent); if (Number.isInteger(i)) focus(i, true); });
+
+// SSE crawl events from the Rust API, shared with Explorer and Sources.
+function connectEvents(){
+  if(!window.EventSource){S.streamState='unsupported';return;}
+  S.streamState='connecting';
+  const es=new EventSource(`${API}/events`);
+  es.onopen=()=>{S.streamState='connected';renderSourceHealth();};
+  const on=msg=>{try{
+    const ev=JSON.parse(msg.data||'{}');
+    if(ev.source){
+      const current=S.sourceState.get(ev.source)||{},status=ev.status||current.status||'waiting';
+      S.sourceState.set(ev.source,{...current,status,count:ev.count??current.count,cached:ev.cached??current.cached,transport:ev.transport||current.transport,
+        activity:{...current.activity,status,requestUrl:ev.requestUrl||current.activity?.requestUrl,elapsedMs:ev.elapsedMs??current.activity?.elapsedMs,count:ev.count??current.activity?.count,error:ev.error??null,cached:ev.cached??current.activity?.cached}});
+    }
+    if(typeof ev.inProgress==='boolean')S.remoteCrawling=ev.inProgress;
+    if(ev.kind==='crawl_started')S.remoteCrawling=true;
+    if(ev.kind==='crawl_completed')S.remoteCrawling=false;
+    const rows=Array.isArray(ev.rows)?ev.rows.map(liveToken):undefined;
+    window.dispatchEvent(new CustomEvent('crawlcaRoomEvent',{detail:{...ev,rows,via:'live'}}));render();
+    if(ev.kind==='crawl_completed'||msg.type==='resync'){sync();syncJev();}
+  }catch{}};
+  ['crawl_started','source_started','source_completed','crawl_completed','cas_discovered','resync','heartbeat'].forEach(t=>es.addEventListener(t,on));
+  es.onerror=()=>{es.close();S.streamState='disconnected · polling';S.remoteCrawling=false;render();setTimeout(connectEvents,12000);};
+}
+
+loadSnapshot(); render(); focus(0); focusTimer = setInterval(cycle, 2600);
+sync(); syncJev(); setInterval(sync, 15000); setInterval(syncJev, 15000); connectEvents();
+})();
+</script>
+<script src="vendor/three.min.js"></script>
+<script src="room-scene.js?v=brand-v3"></script>
+<script src="room-swarm.js"></script>
+<script src="room-live.js?v=live-1"></script>
+</body>
+</html>

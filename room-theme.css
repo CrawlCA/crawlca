@@ -1,0 +1,49 @@
+/* Shared Room palette for the secondary pages. Room remains the visual reference. */
+:root {
+  color-scheme: dark;
+  --room-frame: #1f55e6;
+  --room-panel: #060b14;
+  --room-panel-raised: #0b1322;
+  --room-line: #16223a;
+  --room-line-hi: #29415f;
+  --room-text: #e9eef8;
+  --room-muted: #a9b6cc;
+  --room-cyan: #67d9ff;
+  --room-violet: #c79bff;
+  --room-green: #69f0b2;
+  --room-yellow: #f5c96a;
+  --room-radius: 6px;
+}
+.room-themed-header .brand,
+.room-themed-header .tech-brand { color:var(--room-text); }
+.room-themed-header .brand small,
+.room-themed-header .tech-brand small { color:#dfe8ff; }
+.room-themed-header .ghost {
+  background:transparent;
+  border-color:#ffffff66;
+  color:#fff;
+  border-radius:var(--room-radius);
+}
+.room-themed-header .ghost:hover { background:#060b1433; border-color:var(--room-cyan); }
+.room-themed-header .header-link {
+  background:var(--room-panel);
+  border:1px solid var(--room-panel);
+  border-radius:var(--room-radius);
+  color:var(--room-text);
+  padding:10px 14px;
+}
+.room-themed-header .header-link:hover { border-color:var(--room-cyan); color:var(--room-cyan); }
+
+header.room-themed-header {
+  min-height:62px;
+  padding:10px 0;
+  border-bottom:0;
+  flex-wrap:wrap;
+}
+.room-themed-header .brand strong,
+.room-themed-header .tech-brand {
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:.04em;
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080a0f">
+  <title>CrawlCA · Sources</title>
+  <link rel="icon" type="image/svg+xml" href="assets/brand/crawlca-favicon-v3.svg">
+  <style>body{margin:40px;background:#080a0f;color:#e9eef8;font:14px/1.7 monospace}a{color:#67d9ff}</style>
+</head>
+<body>
+  <p>Mission diagnostics are now in <a href="sources.html">Sources</a>.</p>
+  <script>
+    const destination = new URL('sources.html', location.href);
+    destination.search = location.search;
+    destination.hash = location.hash;
+    location.replace(destination.href);
+  </script>
+</body>
+</html>

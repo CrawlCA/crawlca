@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1f55e6" />
+  <meta name="description" content="CrawlCA — a realtime 3D crawler console for meme launchpads and DEX contract addresses." />
+  <title>CrawlCA · Explorer</title>
+  <link rel="icon" type="image/svg+xml" href="assets/brand/crawlca-favicon-v3.svg">
+  <link rel="stylesheet" href="room-theme.css?v=room-theme-v1">
+  <style>
+.ld:empty::after{content:"";display:inline-block;width:6em;max-width:100%;height:.75em;border-radius:3px;vertical-align:middle;background:currentColor;opacity:.22;animation:ldp 1.2s ease-in-out infinite}
+@keyframes ldp{50%{opacity:.07}}
+@media (prefers-reduced-motion:reduce){.ld:empty::after{animation:none}}
+    :root {
+      --bg: var(--room-frame);
+      --panel: var(--room-panel);
+      --panel-2: var(--room-panel-raised);
+      --line: var(--room-line);
+      --line-hi: var(--room-line-hi);
+      --text: var(--room-text);
+      --muted: var(--room-muted);
+      --muted-2: #8f9db5;
+      --cyan: #67d9ff;
+      --cyan-dim: #28566a;
+      --pink: #ff4da6;
+      --purple: var(--room-violet);
+      --green: #69f0b2;
+      --yellow: #f5c96a;
+      --red: #ff6e83;
+      --mono: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 14px; min-height: 100vh; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; opacity: .55; }
+    .risk.unknown { color: var(--muted); }
+    .data-state { color: var(--muted); font-size: 10px; display: block; margin-top: 4px; }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 0 16px 16px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 62px; padding: 10px 0; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 160px; }
+    .brand-mark { display: block; width: 27px; height: 27px; flex: none; object-fit: contain; }
+    .brand strong { font-family: var(--sans); font-weight: 800; letter-spacing: .04em; font-size: 22px; }
+    .brand small { color: #dfe8ff; display: block; font-size: 10px; letter-spacing: .12em; margin-top: 2px; }
+    .nav { display: flex; align-items: center; gap: 3px; flex: 1; justify-content: center; flex-wrap: wrap; }
+    .right-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .network { background: var(--panel); border-radius: var(--room-radius); border: 1px solid var(--line); color: var(--green); padding: 6px 8px; font-size: 11px; white-space: nowrap; }
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px; box-shadow: 0 0 8px currentColor; }
+    .ghost, .primary { border: 1px solid var(--line-hi); background: var(--panel-2); border-radius: var(--room-radius); color: var(--text); padding: 7px 11px; font-size: 11px; letter-spacing: .04em; }
+    .ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+    .primary { background: var(--cyan); color: #041016; border-color: var(--cyan); font-weight: 700; }
+    .primary:hover { background: #b6f0ff; }
+    .explorer-intro { background: var(--panel); border: 1px solid var(--line); border-radius: var(--room-radius); padding: 20px; }
+    .kpi:nth-child(2) .kpi-value { color: var(--cyan); }
+    .kpi:nth-child(3) .kpi-value { color: var(--purple); }
+    .kpi:nth-child(4) .kpi-value { color: var(--yellow); }
+    .kpi:nth-child(5) .kpi-value { color: var(--green); }
+    .kpi:nth-child(6) .kpi-value { color: var(--pink); }
+    .command { display: flex; align-items: center; gap: 10px; color: var(--muted); margin: 0 0 12px; flex-wrap: wrap; font-size: 12px; }
+    .prompt { color: var(--green); }
+    .hero-line { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+    h1 { font-family: var(--sans); font-size: clamp(24px, 4vw, 42px); letter-spacing: -.04em; font-weight: 750; margin: 0; line-height: 1.1; }
+    .hero-copy { color: var(--muted); max-width: 640px; line-height: 1.55; margin-top: 11px; font-size: 13px; }
+    .hero-side { text-align: right; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .hero-side b { color: var(--cyan); font-weight: 400; }
+    .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 12px 0; background: transparent; }
+    .kpi { background: var(--panel); border-radius: var(--room-radius); padding: 12px 13px; min-width: 0; }
+    .kpi-label { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: .14em; white-space: nowrap; }
+    .kpi-value { font-size: 21px; margin-top: 8px; letter-spacing: -.04em; }
+    .kpi-meta { color: var(--muted-2); font-size: 10px; margin-top: 3px; }
+    .kpi-meta.good { color: var(--green); }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.48fr) minmax(350px, .92fr); gap: 14px; align-items: stretch; }
+    .card { border: 1px solid var(--line); border-radius: var(--room-radius); background: var(--panel); min-width: 0; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
+    .card-title { color: var(--text); letter-spacing: .08em; font-size: 12px; text-transform: uppercase; }
+    .card-title span { color: var(--muted); font-size: 10px; margin-left: 9px; letter-spacing: 0; text-transform: none; }
+    .view { min-height: 544px; display: flex; flex-direction: column; }
+    .scene-wrap { position: relative; min-height: 410px; flex: 1; overflow: hidden; background: radial-gradient(circle at 50% 48%, #102433 0%, #0b1322 41%, #04070d 80%); }
+    #scene { width: 100%; height: 100%; min-height: 410px; display: block; }
+    .scene-wrap:before { content: ""; pointer-events: none; position: absolute; inset: 0; background: linear-gradient(transparent 49.8%, #67d9ff12 50%, transparent 50.2%), linear-gradient(90deg, transparent 49.8%, #67d9ff0b 50%, transparent 50.2%); background-size: 100% 84px, 84px 100%; mask-image: radial-gradient(circle at center, black 0%, transparent 75%); }
+    .scene-overlay { position: absolute; inset: 0; pointer-events: none; padding: 12px 14px; display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+    .scene-overlay .legend { align-self: end; display: flex; gap: 12px; background: #060b14dd; border: 1px solid var(--line); padding: 7px 9px; }
+    .legend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .scene-tools { display: flex; align-items: center; gap: 5px; }
+    .scene-tools button { border: 1px solid var(--line); background: #060b14cc; color: var(--muted); padding: 4px 7px; font-size: 10px; pointer-events: auto; }
+    .scene-tools button:hover, .scene-tools button.active { color: var(--cyan); border-color: var(--cyan-dim); }
+    .scene-tooltip { position: absolute; display: none; z-index: 3; pointer-events: none; width: 178px; border: 1px solid var(--line-hi); background: #0b1322ee; padding: 9px; font-size: 10px; line-height: 1.65; box-shadow: 0 0 22px #0008; }
+    .scene-tooltip strong { display: block; color: var(--cyan); font-size: 12px; }
+    .pipeline { border-top: 1px solid var(--line); padding: 11px 13px; }
+    .pipeline-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 9px; }
+    .pipeline-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .pipe { position: relative; border: 1px solid var(--line); padding: 8px 7px; background: var(--panel); }
+    .pipe:after { content: "›"; position: absolute; right: -6px; top: 8px; color: var(--muted-2); z-index: 1; }
+    .pipe:last-child:after { display: none; }
+    .pipe b { display: block; color: var(--cyan); font-size: 11px; font-weight: 400; }
+    .pipe small { color: var(--muted); font-size: 10px; display: block; margin-top: 4px; }
+    .pipe .bar { height: 2px; margin-top: 8px; background: var(--line); overflow: hidden; }
+    .pipe .bar i { display: block; height: 100%; background: var(--cyan); width: 70%; }
+    .pipe:nth-child(2) .bar i { width: 84%; background: var(--purple); }
+    .pipe:nth-child(3) .bar i { width: 52%; background: var(--pink); }
+    .pipe:nth-child(4) .bar i { width: 35%; background: var(--yellow); }
+    .pipe:nth-child(5) .bar i { width: 92%; background: var(--green); }
+    .right-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .stream { flex: 1; min-height: 290px; }
+    .stream-list { max-height: 455px; overflow: auto; }
+    .stream-row { border-bottom: 1px solid var(--line); padding: 10px 13px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 9px; align-items: center; cursor: pointer; }
+    .stream-row:hover, .stream-row.selected { background: #0d1726; }
+    .token-avatar { width: 30px; height: 30px; border: 1px solid var(--line-hi); border-radius: 50%; display: grid; place-items: center; font-size: 10px; color: var(--cyan); background: #0b1622; position: relative; overflow: hidden; }
+    .token-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+    .token-avatar img.on { opacity: 1; }
+    .token-main { min-width: 0; }
+    .token-line { display: flex; align-items: center; gap: 7px; }
+    .token-line strong { font-size: 12px; font-weight: 500; }
+    .token-line small { color: var(--muted); font-size: 10px; }
+    .token-sub { color: var(--muted); font-size: 10px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .token-metric { text-align: right; font-size: 11px; }
+    .token-metric b { color: var(--green); font-weight: 400; display: block; }
+    .token-metric small { color: var(--muted); display: block; margin-top: 3px; font-size: 10px; }
+    .badge { display: inline-flex; align-items: center; border: 1px solid var(--line-hi); padding: 2px 5px; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .badge.sol { color: var(--purple); border-color: #5c4d90; }
+    .badge.base { color: #6bb9ff; border-color: #34658e; }
+    .badge.eth { color: #b9b8ff; border-color: #5c5b9b; }
+    .badge.rh { color: #f2a7ff; border-color: #794a80; }
+    .badge.bnb { color: #f5c96a; border-color: #806c34; }
+    .sources { min-height: 172px; }
+    .source-grid { border-radius: 0 0 var(--room-radius) var(--room-radius); overflow: hidden; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); }
+    .source { background: var(--panel); padding: 10px 11px; cursor: pointer; }
+    .source:hover, .source.active { background: #0d1726; }
+    .source-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .source-top strong { font-size: 11px; font-weight: 400; }
+    .source-top i { width: 6px; height: 6px; background: var(--green); border-radius: 50%; box-shadow: 0 0 8px var(--green); }
+    .source-meta { color: var(--muted); font-size: 10px; margin-top: 7px; display: flex; justify-content: space-between; }
+    .source-meta em { color: var(--cyan); font-style: normal; }
+    .controls { background: var(--panel); border-radius: var(--room-radius); padding: 12px; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .search { flex: 1 1 200px; position: relative; }
+    .search input { width: 100%; background: var(--panel-2); border-radius: var(--room-radius); border: 1px solid var(--line); color: var(--text); padding: 10px 12px 10px 31px; outline: none; font-size: 12px; }
+    .search input:focus { border-color: var(--cyan-dim); box-shadow: 0 0 0 2px #67d9ff12; }
+    .search:before { content: "⌕"; position: absolute; left: 12px; top: 8px; color: var(--muted); font-size: 16px; z-index: 1; }
+    .filter { border-radius: var(--room-radius); border: 1px solid var(--line-hi); background: var(--panel); color: var(--muted); padding: 9px 10px; font-size: 11px; }
+    .filter:hover, .filter.active { border-color: var(--cyan-dim); color: var(--cyan); }
+    .table-card { overflow: hidden; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
+    th { color: var(--muted); text-align: left; font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; border-bottom: 1px solid var(--line); padding: 10px 12px; white-space: nowrap; }
+    td { border-bottom: 1px solid var(--line); padding: 12px; font-size: 11px; white-space: nowrap; }
+    tr { cursor: pointer; }
+    tbody tr:hover { background: #0d1726; }
+    td:first-child { color: var(--cyan); }
+    .symbol-cell strong { color: var(--text); font-weight: 500; display: block; }
+    .symbol-cell small { color: var(--muted); font-size: 10px; }
+    .risk { display: inline-flex; align-items: center; gap: 5px; }
+    .risk i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .risk.low { color: var(--green); }
+    .risk.med { color: var(--yellow); }
+    .risk.high { color: var(--red); }
+    .up { color: var(--green); } .down { color: var(--red); }
+    .footer { color: #dfe8ff; font-size: 10px; display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 11px; }
+    .footer b { color: #fff; font-weight: 400; }
+    .drawer { position: fixed; top: 0; right: 0; width: min(420px, 94vw); height: 100vh; background: var(--panel); border-left: 1px solid var(--line-hi); transform: translateX(102%); transition: transform .24s ease; z-index: 10; box-shadow: -20px 0 50px #0008; overflow: auto; }
+    .drawer.open { transform: translateX(0); }
+    .drawer-head { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--line); }
+    .drawer-head strong { font-size: 13px; }
+    .drawer-body { padding: 16px; }
+    .address { border: 1px solid var(--line); background: #04070d; padding: 10px; color: var(--cyan); font-size: 11px; word-break: break-all; line-height: 1.55; }
+    .drawer-actions { display: flex; gap: 7px; margin-top: 9px; }
+    .drawer-actions button { flex: 1; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 14px; }
+    .detail { background: var(--panel); padding: 11px; }
+    .detail label { display: block; color: var(--muted); font-size: 10px; margin-bottom: 6px; }
+    .detail b { font-size: 13px; font-weight: 400; }
+    .signal { margin-top: 15px; }
+    .signal-row { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; margin-bottom: 7px; }
+    .signal-bar { height: 4px; background: var(--line); }
+    .signal-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--cyan)); }
+    .log { margin-top: 15px; border-top: 1px solid var(--line); padding-top: 12px; }
+    .log-line { font-size: 10px; line-height: 1.7; color: var(--muted); }
+    .log-line b { color: var(--green); font-weight: 400; }
+    @media (max-width: 1120px) { .workspace { grid-template-columns: 1fr; } .right-col { display: grid; grid-template-columns: 1fr 1fr; } .sources { min-height: 0; } }
+    @media (max-width: 760px) { .shell { padding: 0 12px 16px; } .topbar { align-items: flex-start; flex-wrap: wrap; } .nav { order: 3; flex-basis: 100%; justify-content: flex-start; overflow: visible; padding-top: 4px; } .right-actions { margin-left: auto; } .hero-line { align-items: flex-start; flex-direction: column; } .hero-side { text-align: left; } .kpis { display: flex; overflow-x: auto; } .kpi { min-width: 140px; } .right-col { display: flex; } .view { min-height: 480px; } .scene-wrap, #scene { min-height: 360px; } .pipeline-steps { grid-template-columns: repeat(5, minmax(98px, 1fr)); overflow-x: auto; } .pipeline { overflow: hidden; } .source-grid { grid-template-columns: repeat(2, 1fr); } .footer { flex-direction: column; } }
+    @media (max-width: 760px) { .scene-overlay { display: block; } .scene-overlay > div:first-child { max-width: 100%; } .scene-tools { position: absolute; top: 44px; left: 12px; right: 12px; flex-wrap: wrap; } .scene-overlay .legend { position: absolute; left: 12px; bottom: 12px; flex-wrap: wrap; } }
+    @media (prefers-reduced-motion: reduce) { *, *:before, *:after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+  <link rel="stylesheet" href="site-nav.css?v=nav-room-v1">
+  <script src="site-nav.js?v=nav-tech-v1" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar room-themed-header">
+      <div class="brand"><img class="brand-mark" src="assets/brand/crawlca-mark-v3.svg" width="27" height="27" alt="" aria-hidden="true"><div><strong>crawlca</strong><small>contract address intelligence</small></div></div>
+      <nav class="nav room-nav" aria-label="Primary">
+        <a data-nav="home" href="/">Room</a><a data-nav="explorer" href="console.html" aria-current="page">Explorer</a><a data-nav="sources" href="sources.html">Sources</a>
+        <details class="nav-resources"><summary>Resources</summary><div class="resources-menu"><a data-nav="technology" href="technology.html">Technology</a><button type="button" data-help>Help &amp; guide</button></div></details>
+      </nav>
+      <div class="right-actions"><span class="network" id="networkLabel"><i class="dot"></i><span class="ld"></span></span><button class="ghost" id="connect" aria-label="Check API connection">api status</button><button class="ghost" type="button" data-help>Help</button></div>
+    </header>
+
+    <div class="explorer-intro">
+    <div class="command"><span class="prompt">~/crawlca ❯</span><span>ca status --live</span><span id="connectionState" style="margin-left:auto;color:var(--muted)"><i class="dot"></i><span class="ld"></span></span></div>
+    <section class="hero-line">
+      <div><h1>explore the signal.</h1><div class="hero-copy">Search contract addresses across launchpad and DEX source snapshots. Inspect market metrics, source timestamps and your saved watchlist.</div></div>
+      <div class="hero-side"><div>last sync <b id="block">waiting…</b></div><div>transport <b class="ld" id="transport"></b> · updated <b id="updated">—</b></div></div>
+    </section>
+
+    </div>
+
+    <section class="kpis" aria-label="Crawler statistics">
+      <div class="kpi"><div class="kpi-label">spiders awake</div><div class="kpi-value" id="kpi-spiders">—</div><div class="kpi-meta" class="ld" id="meta-spiders"></div></div>
+      <div class="kpi"><div class="kpi-label">CAs indexed</div><div class="kpi-value" id="kpi-cas">—</div><div class="kpi-meta" id="meta-cas">waiting for live feed</div></div>
+      <div class="kpi"><div class="kpi-label">crawl telemetry</div><div class="kpi-value" id="kpi-tx">—</div><div class="kpi-meta" id="meta-tx">server stats unavailable</div></div>
+      <div class="kpi"><div class="kpi-label">liquidity tracked</div><div class="kpi-value" id="kpi-liquidity">—</div><div class="kpi-meta" id="meta-liquidity">waiting for live feed</div></div>
+      <div class="kpi"><div class="kpi-label">fresh &lt; 15m</div><div class="kpi-value" id="kpi-fresh">—</div><div class="kpi-meta" id="meta-fresh">waiting for live feed</div></div>
+      <div class="kpi"><div class="kpi-label">flagged contracts</div><div class="kpi-value" id="kpi-risk">—</div><div class="kpi-meta" id="meta-risk" style="color:var(--yellow)">waiting for live feed</div></div>
+    </section>
+
+    <main>
+      <section class="workspace">
+        <article class="card view">
+          <div class="card-head"><div class="card-title">live topology <span>CA graph / visual projection</span></div><div><button class="ghost" id="pause">Ⅱ pause</button></div></div>
+          <div class="scene-wrap" id="sceneWrap"><canvas id="scene"></canvas><div class="scene-overlay"><div><span style="color:var(--cyan)">●</span> 3D network · <span class="ld" id="nodeCount"></span></div><div class="scene-tools"><button class="active" data-chain="all">all</button><button data-chain="sol">sol</button><button data-chain="base">base</button><button data-chain="eth">eth</button><button data-chain="bnb">bnb</button><button data-chain="rh">rh</button><button id="resetView">reset</button></div><div class="legend"><span><i style="background:var(--pink)"></i>launchpad</span><span><i style="background:var(--cyan)"></i>dex</span><span><i style="background:var(--green)"></i>source online</span></div></div><div class="scene-tooltip" id="tooltip"></div></div>
+          <div class="pipeline"><div class="pipeline-label">crawl pipeline · snapshot coverage</div><div class="pipeline-steps"><div class="pipe"><b>discover</b><small class="ld" id="pipe-discover"></small><div class="bar"><i style="width:0%"></i></div></div><div class="pipe"><b>metadata</b><small class="ld" id="pipe-metadata"></small><div class="bar"><i style="width:0%"></i></div></div><div class="pipe"><b>markets</b><small class="ld" id="pipe-markets"></small><div class="bar"><i style="width:0%"></i></div></div><div class="pipe"><b>risk</b><small id="pipe-risk">not audited</small><div class="bar"><i style="width:0%"></i></div></div><div class="pipe"><b>indexed</b><small class="ld" id="pipe-indexed"></small><div class="bar"><i style="width:0%"></i></div></div></div></div>
+        </article>
+
+        <div class="right-col">
+          <article class="card stream"><div class="card-head"><div class="card-title">new CAs <span>source snapshots</span></div><div class="ld" id="feedState" style="color:var(--green);font-size:10px"><i class="dot"></i>auto</div></div><div class="stream-list" id="streamList"></div></article>
+          <article class="card sources"><div class="card-head"><div class="card-title">source mesh <span>click to isolate</span></div><span class="ld" id="sourceSummary" style="font-size:10px;color:var(--muted)"></span></div><div class="source-grid" id="sourceGrid"></div></article>
+        </div>
+      </section>
+
+      <section class="controls"><div class="search"><input id="search" type="search" placeholder="search symbol, name, or contract address…" aria-label="Search contract addresses"></div><button class="filter active" data-filter="all">all CAs</button><button class="filter" data-filter="new">new &lt; 15m</button><button class="filter" data-filter="signal">High activity</button><button class="filter" data-filter="risk">Flagged</button><button class="filter" data-filter="unassessed">Unassessed</button><button class="filter" data-filter="watch">watchlist</button><button class="primary" id="crawlNow" title="Reload the latest saved snapshot. Source collection runs automatically on the server.">Refresh snapshot</button></section>
+
+      <section class="card table-card"><div class="card-head"><div class="card-title">indexed contracts <span id="tableCaption">sorted by signal · source snapshots</span></div><div style="color:var(--muted);font-size:10px">click row to inspect</div></div><div class="table-wrap"><table><thead><tr><th>contract / token</th><th>source</th><th>chain</th><th>mcap</th><th>liquidity</th><th>5m volume</th><th>holders</th><th>signal</th><th>risk</th><th>seen</th></tr></thead><tbody id="tokenTable"></tbody></table></div></section>
+    </main>
+    <footer class="footer"><span>crawlca network · <b>crawler queen v0.4.2</b></span><span>refresh interval <b>15s</b> · adapters <b>12</b> · <b>unknown metrics preserved</b></span></footer>
+  </div>
+
+  <aside class="drawer" id="drawer"><div class="drawer-head"><strong id="drawerTitle">CA inspector</strong><button class="ghost" id="closeDrawer">close ×</button></div><div class="drawer-body"><div class="address" id="drawerAddress"></div><div class="drawer-actions"><button class="ghost" id="copyAddress">copy CA</button><button class="primary" id="watchAddress">☆ watchlist</button></div><div id="watchStatus" class="data-state" role="status"></div><div class="detail-grid" id="detailGrid"></div><div class="signal"><div class="signal-row"><span>rule-based activity signal</span><b id="signalScore" style="color:var(--cyan)"></b></div><div class="signal-bar"><i id="signalBar"></i></div></div><div class="log"><div class="pipeline-label">source evidence</div><div id="drawerLog"></div></div></div></aside>
+
+  <script>
+    const tokens = [];
+    const sources = [
+      {name:'Pump.fun',kind:'launchpad',chain:'SOL'}, {name:'Moonshot',kind:'launchpad',chain:'SOL'},
+      {name:'Raydium',kind:'dex',chain:'SOL'}, {name:'Meteora',kind:'dex',chain:'SOL'},
+      {name:'Aerodrome',kind:'dex',chain:'BASE'}, {name:'Uniswap',kind:'dex',chain:'ETH'},
+      {name:'GMGN partner',kind:'discovery',chain:'RH'}, {name:'GMGN official',kind:'discovery',chain:'MULTI'},
+      {name:'Four.meme',kind:'launchpad',chain:'BNB'}, {name:'Flap.sh',kind:'launchpad',chain:'BNB'},
+      {name:'Robinhood launchpad',kind:'launchpad',chain:'RH'}, {name:'Robinhood Uniswap',kind:'dex',chain:'RH'}
+    ];
+    const $ = (s, root=document) => root.querySelector(s);
+    const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+    const setText = (selector,value) => { const el=$(selector); if(el)el.textContent=value; };
+    const escapeHtml = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    function safeTokenImage(value) {
+      if(typeof value!=='string'||value.length>2048||/[\s"'<>]/.test(value))return null;
+      try{const url=new URL(value);return url.protocol==='https:'&&!url.username&&!url.password?url.href:null;}catch{return null;}
+    }
+    const failedTokenImages=new Map(),IMAGE_RETRY_MS=5*60*1000;
+    function tokenAvatar(token) {
+      let url=safeTokenImage(token.image);
+      if(url&&failedTokenImages.has(url)){
+        if(Date.now()-failedTokenImages.get(url)<IMAGE_RETRY_MS)url=null;
+        else failedTokenImages.delete(url);
+      }
+      return `<div class="token-avatar" style="color:${escapeHtml(token.color)}">${escapeHtml(token.avatar)}${url?`<img data-token-logo="1" src="${escapeHtml(url)}" alt="" width="30" height="30" loading="lazy" decoding="async" referrerpolicy="no-referrer">`:''}</div>`;
+    }
+    document.addEventListener('load',event=>{const img=event.target;if(img?.tagName==='IMG'&&img.dataset.tokenLogo==='1'){failedTokenImages.delete(img.getAttribute('src'));img.classList.add('on');}},true);
+    document.addEventListener('error',event=>{
+      const img=event.target;if(img?.tagName!=='IMG'||img.dataset.tokenLogo!=='1')return;
+      const url=safeTokenImage(img.getAttribute('src'));if(url){failedTokenImages.delete(url);failedTokenImages.set(url,Date.now());if(failedTokenImages.size>512)failedTokenImages.delete(failedTokenImages.keys().next().value);}
+      img.remove();
+    },true);
+    const metric = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+    const fmt = value => { const n=metric(value); return n==null?'—':n>=1e6?'$'+(n/1e6).toFixed(1)+'m':n>=1e3?'$'+Math.round(n/1e3)+'k':'$'+n.toFixed(n<10?1:0); };
+    const tokenKey = token => { const chain=String(token.chain||'UNKNOWN').toUpperCase(),address=String(token.address||token.full||''); return `${chain}:${chain==='SOL'?address:address.toLowerCase()}`; };
+    const ageLabel = value => {
+      const raw=metric(value); if(raw==null||raw<=0)return 'unknown';
+      const seconds=Math.max(0,Math.floor(Date.now()/1000-(raw>1e12?raw/1000:raw)));
+      return seconds<60?'now':seconds<3600?`${Math.floor(seconds/60)}m`:seconds<86400?`${Math.floor(seconds/3600)}h`:`${Math.floor(seconds/86400)}d`;
+    };
+    const timeLabel = seconds => metric(seconds)>0?new Date(Number(seconds)*1000).toLocaleString():'unknown';
+    const isFresh = t => metric(t.seenAt)>0 && Date.now()/1000-t.seenAt>=0 && Date.now()/1000-t.seenAt<900;
+    const initialSource=new URLSearchParams(location.search).get('source');
+    let filter='all',sourceFilter=sources.some(source=>source.name===initialSource)?initialSource:null,selected=null,paused=false,rot=0,sceneNodes=[];
+    let sceneChain='all',sourceState=new Map(),rebuildScene=()=>{},syncing=false,runtimeMode='loading';
+    let hasRealData=false,lastSuccessfulSync=null,streamState='connecting',requestRevision=0;
+    let visibleRows=[],streamRows=[],streamMarkup=null;
+    const WATCH_KEY='crawlca.watchlist.v1';
+    function readWatchlist() {
+      try {
+        const data=JSON.parse(localStorage.getItem(WATCH_KEY)||'[]');
+        if(!Array.isArray(data))return [];
+        return data.filter(item=>item&&item.chain&&item.address).map(item=>({...item,key:tokenKey(item)}));
+      } catch { return []; }
+    }
+    let watchlist=readWatchlist();
+    function saveWatchlist(next) {
+      try { localStorage.setItem(WATCH_KEY,JSON.stringify(next));watchlist=next;setText('#watchStatus','Saved in this browser');return true; }
+      catch {setText('#watchStatus','Unable to save: browser storage is unavailable or full');return false;}
+    }
+    function watchedToken(entry) {
+      const saved=entry.token||{};
+      return liveToken({...saved,address:entry.address,chain:entry.chain,symbol:entry.symbol,name:entry.name,source:entry.source,
+        liquidity:saved.liq??saved.liquidity,volume5m:saved.vol??saved.volume5m,dataStatus:'cached',
+        dataUpdatedAt:saved.dataUpdatedAt??saved.snapshotAt,savedOnly:true});
+    }
+    function currentRows() {
+      if(filter!=='watch')return tokens;
+      const current=new Map(tokens.map(t=>[tokenKey(t),t]));
+      return watchlist.map(entry=>current.get(entry.key)||watchedToken(entry));
+    }
+    function filteredTokens() {
+      const q=$('#search').value.trim().toLowerCase();
+      return currentRows().filter(t=>(!q||`${t.symbol} ${t.name} ${t.full}`.toLowerCase().includes(q))
+        &&(!sourceFilter||t.source===sourceFilter)&&(sceneChain==='all'||t.chain.toLowerCase()===sceneChain)
+        &&(filter==='all'||filter==='watch'||(filter==='new'&&isFresh(t))||(filter==='signal'&&t.signal!=null&&t.signal>=80)||(filter==='risk'&&t.risk==='high')||(filter==='unassessed'&&t.risk!=='high')));
+    }
+    function tokenStatus(t) {
+      const source=sourceState.get(t.source);
+      if(t.savedOnly)return 'saved snapshot · absent from this feed';
+      if(t.dataStatus==='unverified')return 'snapshot · source unverified';
+      if(runtimeMode==='stale'||runtimeMode==='unavailable')return 'cached · API unavailable';
+      if(source?.cached||source?.activity?.cached||['cached','stale','degraded'].includes(t.dataStatus))return 'cached snapshot';
+      if(t.dataStatus==='unavailable'||source?.status==='error'||source?.status==='key required')return 'cached · source unavailable';
+      if(source?.status==='crawling')return 'snapshot · refreshing';
+      return t.dataUpdatedAt?'source snapshot':'snapshot · update time unknown';
+    }
+    const sourceHasSnapshot = name => { const source=sourceState.get(name); return !!(source?.cached||source?.activity?.cached||source?.activity?.lastSuccessAt||tokens.some(t=>t.source===name)); };
+    const sourceColor = status => status==='online'?'var(--green)':status==='crawling'?'var(--cyan)':['degraded','stale','key required'].includes(status)?'var(--yellow)':'var(--muted)';
+    function sourceReason(source,current=sourceState.get(source.name)||{}) {
+      const parts=[];
+      if(current.status==='key required')parts.push(`Configure ${current.requiredKey||'provider credentials'} on the server`);
+      const error=current.activity?.error||current.error;if(error)parts.push(String(error));
+      if(current.cached||current.activity?.cached)parts.push('last successful snapshot retained');
+      if(current.activity?.lastSuccessAt)parts.push(`last success ${timeLabel(current.activity.lastSuccessAt)}`);
+      if(current.transport||current.activity?.transport)parts.push(current.transport||current.activity.transport);
+      if(!parts.length)parts.push('No successful source snapshot yet');
+      return parts.join(' · ');
+    }
+    async function getJson(url,options={},timeoutMs=12000) {
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+      try {const response=await fetch(url,{...options,cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error(`HTTP ${response.status}`);return await response.json();}
+      catch(error){throw new Error(error.name==='AbortError'?`Request timed out after ${timeoutMs/1000}s`:error.message||String(error));}
+      finally{clearTimeout(timer);}
+    }
+    function setRuntimeMode(mode,detail) {
+      runtimeMode=mode;
+      const labels={live:['API connected · source snapshots','var(--green)'],stale:['cached data · API unavailable','var(--yellow)'],unavailable:['API unavailable · no data','var(--yellow)'],loading:['','var(--muted)']};
+      let [label,color]=labels[mode]||labels.unavailable;
+      if(mode==='live'&&[...sourceState.values()].some(s=>s.cached||s.activity?.cached)){label='API connected · includes cached sources';color='var(--yellow)';}
+      for(const id of ['#connectionState','#networkLabel']){const el=$(id);if(el){el.innerHTML=mode==='loading'?'<i class="dot"></i><span class="ld"></span>':`<i class="dot"></i>${escapeHtml(id==='#connectionState'&&detail?detail:label)}`;el.style.color=color;}}
+      setText('#transport',mode==='live'?`server · SSE ${streamState}`:mode==='stale'?'last successful snapshot':mode==='loading'?'':'no connection');
+      setText('#updated',lastSuccessfulSync?lastSuccessfulSync.toLocaleTimeString():'no successful sync');
+      setText('#feedState',mode==='live'?'source snapshots':mode==='loading'?'':'cached / unavailable');
+      renderAll();
+    }
+    function applyStats(stats) {
+      const loaded=tokens;
+      setText('#kpi-cas',loaded.length.toLocaleString());setText('#meta-cas',`${sourceFilter||'all sources'} · loaded (max 500)`);
+      const liquidity=loaded.map(t=>t.liq).filter(v=>v!=null);
+      setText('#kpi-liquidity',liquidity.length?fmt(liquidity.reduce((a,b)=>a+b,0)):'—');
+      setText('#meta-liquidity',`${liquidity.length}/${loaded.length} loaded tokens report liquidity`);
+      setText('#kpi-fresh',loaded.filter(isFresh).length.toLocaleString());setText('#meta-fresh','known creation time · loaded tokens');
+      setText('#kpi-risk',loaded.filter(t=>t.risk==='high').length.toLocaleString());setText('#meta-risk',`${loaded.filter(t=>t.risk!=='high').length} unassessed · not audited`);
+      setText('#kpi-tx',stats?.txRead??'—');setText('#meta-tx',stats?'server telemetry':'telemetry unavailable');
+      setText('#block',stats?.updatedAt?`snapshot ${timeLabel(stats.updatedAt)}`:'snapshot time unavailable');
+    }
+    function renderSources() {
+      const states=[...sourceState.values()],online=states.filter(s=>s.status==='online').length,loading=runtimeMode==='loading';
+      setText('#sourceSummary',loading?'':`${online}/${sources.length} online`);setText('#kpi-spiders',loading?'—':`${online}/${sources.length}`);
+      setText('#meta-spiders',loading?'':runtimeMode==='stale'?'last source health · API unavailable':'reported source health');
+      const metadata=tokens.filter(t=>t.name&&t.full).length,markets=tokens.filter(t=>t.mcap!=null||t.liq!=null||t.vol!=null).length;
+      setText('#pipe-discover',loading?'':`${online}/${sources.length} online`);setText('#pipe-metadata',loading?'':`${metadata}/${tokens.length} named`);
+      setText('#pipe-markets',loading?'':`${markets}/${tokens.length} metrics`);setText('#pipe-risk','not audited');setText('#pipe-indexed',loading?'':`${tokens.length} in snapshot`);
+      const coverage=[online/sources.length,tokens.length?metadata/tokens.length:0,tokens.length?markets/tokens.length:0,0,tokens.length?1:0];
+      $$('.pipeline .bar i').forEach((bar,index)=>{bar.style.width=`${coverage[index]*100}%`;});
+      $('#sourceGrid').innerHTML=sources.map(source=>{
+        const current=sourceState.get(source.name)||{status:runtimeMode==='loading'?'waiting':'unavailable'},status=current.status||'waiting',color=sourceColor(status),reason=sourceReason(source,current);
+        const lag=current.lagMs!=null&&metric(current.lagMs)!=null?` · ${Math.round(current.lagMs)}ms`:'';
+        return `<div class="source ${sourceFilter===source.name?'active':''}" data-source="${escapeHtml(source.name)}" title="${escapeHtml(reason)}"><div class="source-top"><strong>${escapeHtml(source.name)}</strong><i style="background:${color};box-shadow:0 0 8px ${color}"></i></div><div class="source-meta"><span>${escapeHtml(source.kind)} · ${escapeHtml(source.chain)}</span><em style="color:${color}">${escapeHtml(status+lag)}</em></div><small style="display:block;margin-top:6px;color:var(--muted);overflow-wrap:anywhere">${escapeHtml(reason)}</small></div>`;
+      }).join('');
+      $$('.source').forEach(el=>el.addEventListener('click',()=>{sourceFilter=sourceFilter===el.dataset.source?null:el.dataset.source;requestRevision++;renderAll();syncLive();}));
+    }
+    function renderStream() {
+      const rows=filteredTokens().slice(0,5);streamRows=rows;
+      const markup=rows.map((t,i)=>`<div class="stream-row ${selected&&tokenKey(selected)===tokenKey(t)?'selected':''}" data-index="${i}">${tokenAvatar(t)}<div class="token-main"><div class="token-line"><strong>${escapeHtml(t.symbol)}</strong><small>${escapeHtml(t.name)}</small><span class="badge ${escapeHtml(t.chain.toLowerCase())}">${escapeHtml(t.chain)}</span></div><div class="token-sub">${escapeHtml(t.ca)} · ${escapeHtml(t.source)} · ${escapeHtml(tokenStatus(t))}</div></div><div class="token-metric"><b>${t.signal==null?'—':escapeHtml(t.signal)} / 100</b><small>${fmt(t.mcap)}</small></div></div>`).join('')||`<div style="padding:24px;color:var(--muted)">${runtimeMode==='loading'?'Connecting to data sources…':runtimeMode==='unavailable'?'API unavailable. No sample data is displayed.':'No contracts in the current selection.'}</div>`;
+      if(markup===streamMarkup)return;
+      streamMarkup=markup;$('#streamList').innerHTML=markup;
+      $$('.stream-row').forEach(row=>row.addEventListener('click',()=>openDrawer(streamRows[+row.dataset.index])));
+    }
+    function renderTable() {
+      visibleRows=filteredTokens();
+      $('#tokenTable').innerHTML=visibleRows.map((t,index)=>`<tr data-index="${index}"><td><div class="symbol-cell"><strong>${escapeHtml(t.symbol)}</strong><small>${escapeHtml(t.ca)}</small></div></td><td>${escapeHtml(t.source)}</td><td><span class="badge ${escapeHtml(t.chain.toLowerCase())}">${escapeHtml(t.chain)}</span></td><td>${fmt(t.mcap)}</td><td>${fmt(t.liq)}</td><td>${fmt(t.vol)}</td><td>${t.holders==null?'—':t.holders.toLocaleString()}</td><td>${t.signal==null?'—':escapeHtml(t.signal)}</td><td><span class="risk ${t.risk==='high'?'high':'unknown'}"><i></i>${t.risk==='high'?'flagged':'not assessed'}</span></td><td style="color:var(--muted)">${escapeHtml(t.seenAt?ageLabel(t.seenAt):'unknown')}<small class="data-state">${escapeHtml(tokenStatus(t))}</small></td></tr>`).join('')||`<tr><td colspan="10" style="color:var(--muted);padding:28px 12px">${runtimeMode==='loading'?'Connecting to API…':runtimeMode==='unavailable'?'API unavailable. No source snapshot has been loaded.':filter==='watch'?'No matching watchlist entries. Add a contract from its details.':'No contracts match this query.'}</td></tr>`;
+      $$('tbody tr[data-index]').forEach(row=>row.addEventListener('click',()=>openDrawer(visibleRows[+row.dataset.index])));
+      setText('#tableCaption',`${visibleRows.length} contracts · ${sourceFilter||'all sources'} · ${runtimeMode==='stale'?'cached':runtimeMode==='live'?'source snapshots':runtimeMode}`);
+    }
+    function updateWatchButton() {
+      const watching=selected&&watchlist.some(entry=>entry.key===tokenKey(selected));
+      setText('#watchAddress',watching?'★ remove from watchlist':'☆ add to watchlist');$('#watchAddress').disabled=!selected;
+    }
+    function renderDrawer() {
+      if(!selected)return;const t=selected;
+      setText('#drawerTitle',`${t.symbol} · CA inspector`);setText('#drawerAddress',t.full);setText('#signalScore',t.signal==null?'not available':`${t.signal} / 100`);
+      $('#signalBar').style.width=`${t.signal==null?0:Math.max(0,Math.min(100,t.signal))}%`;
+      $('#detailGrid').innerHTML=`<div class="detail"><label>market cap</label><b>${fmt(t.mcap)}</b></div><div class="detail"><label>liquidity</label><b>${fmt(t.liq)}</b></div><div class="detail"><label>5m volume</label><b>${fmt(t.vol)}</b></div><div class="detail"><label>holders</label><b>${t.holders==null?'—':t.holders.toLocaleString()}</b></div><div class="detail"><label>chain</label><b>${escapeHtml(t.chain)}</b></div><div class="detail"><label>source</label><b>${escapeHtml(t.source)}</b></div>`;
+      const evidence=[`Data: ${tokenStatus(t)}`,`Source updated: ${timeLabel(t.dataUpdatedAt)}`,`Token / pool created: ${timeLabel(t.seenAt)}`,
+        `Source: ${t.source}`,`Risk: ${t.risk==='high'?'provider flagged; review required':'not assessed'}`,'Activity score: server market rules; no AI analysis or contract audit has run.'];
+      const current=sourceState.get(t.source);if(current?.activity?.error)evidence.push(`Source error: ${current.activity.error}`);
+      $('#drawerLog').innerHTML=evidence.map(line=>`<div class="log-line">${escapeHtml(line)}</div>`).join('');updateWatchButton();
+    }
+    function openDrawer(t) {if(!t)return;selected=t;setText('#watchStatus','');renderStream();renderDrawer();$('#drawer').classList.add('open');}
+    function renderAll() {renderSources();renderTable();renderStream();rebuildScene();renderDrawer();}
+    function liveToken(t) {
+      const chain=String(t.chain||'UNKNOWN').toUpperCase(),address=String(t.address||t.full||''),symbol=String(t.symbol||'CA');
+      const kind=t.sourceKind==='launchpad'||t.type==='launchpad'?'launchpad':'dex';
+      const source=String(t.source||'unknown'),health=sourceState.get(source);
+      return {symbol,name:String(t.name||symbol),address,full:address,ca:address?`${address.slice(0,4)}…${address.slice(-4)}`:'unknown',source,chain,
+        mcap:metric(t.mcap),liq:metric(t.liquidity??t.liq),vol:metric(t.volume5m??t.vol),holders:metric(t.holders),signal:metric(t.signal),risk:t.risk==='high'?'high':'unknown',
+        sourceRisk:t.risk||'unknown',seenAt:metric(t.seenAt),seen:t.seen||'unknown',type:kind,color:kind==='launchpad'?'#ff4da6':'#67d9ff',avatar:[...symbol].slice(0,2).join(''),image:safeTokenImage(t.image),buy:null,
+        dataStatus:t.dataStatus||((health?.cached||health?.activity?.cached)?'cached':'snapshot'),dataUpdatedAt:metric(t.dataUpdatedAt)||metric(health?.activity?.lastSuccessAt),savedOnly:!!t.savedOnly};
+    }
+    $('#closeDrawer').addEventListener('click',()=>$('#drawer').classList.remove('open'));
+    $('#copyAddress').addEventListener('click',async e=>{const button=e.currentTarget;try{await navigator.clipboard.writeText($('#drawerAddress').textContent);button.textContent='copied ✓';}catch{setText('#watchStatus','Copy unavailable. Select the address and copy it manually.');}setTimeout(()=>{button.textContent='copy CA';},1200);});
+    $('#watchAddress').addEventListener('click',()=>{if(!selected)return;const key=tokenKey(selected),exists=watchlist.some(entry=>entry.key===key);const next=exists?watchlist.filter(entry=>entry.key!==key):[...watchlist,{key,chain:selected.chain,address:selected.full,symbol:selected.symbol,name:selected.name,source:selected.source,savedAt:Date.now(),token:{...selected}}];if(saveWatchlist(next))renderAll();});
+    window.addEventListener('storage',event=>{if(event.key===WATCH_KEY){watchlist=readWatchlist();renderAll();}});
+    $('#search').addEventListener('input',renderAll);
+    $$('.filter').forEach(btn=>btn.addEventListener('click',()=>{filter=btn.dataset.filter;$$('.filter').forEach(b=>b.classList.toggle('active',b===btn));renderAll();}));
+    $('#pause').addEventListener('click',e=>{paused=!paused;e.currentTarget.textContent=paused?'▶ resume visual':'Ⅱ pause visual';});
+    $('#connect').addEventListener('click',async e=>{const button=e.currentTarget;button.textContent='checking…';button.disabled=true;try{await getJson(`${API_BASE}/health`);button.textContent='API online';}catch{button.textContent='API unavailable';}finally{button.disabled=false;}});
+    $('#crawlNow').addEventListener('click',async()=>{
+      const button=$('#crawlNow');button.disabled=true;button.textContent='Refreshing snapshot…';
+      try{const result=await syncLive();button.textContent=result.mode==='live'?'Snapshot refreshed':result.mode==='stale'?'Using cached snapshot':'Snapshot unavailable';}
+      finally{button.disabled=false;setTimeout(()=>{button.textContent='Refresh snapshot';},2200);}
+    });
+    window.addEventListener('keydown',e=>{const typing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||document.activeElement?.isContentEditable;if(e.key==='/'&&!typing){e.preventDefault();$('#search').focus();}if(e.key==='Escape')$('#drawer').classList.remove('open');});
+    const apiPort=Number(new URLSearchParams(location.search).get('api'));
+    const localHost=location.hostname==='127.0.0.1'||location.hostname==='localhost';
+    const API_BASE=window.CRAWLCA_API||(localHost?`http://127.0.0.1:${Number.isInteger(apiPort)&&apiPort>=1&&apiPort<=65535?apiPort:8788}/api`:'/api');
+    let crawlStream=null,crawlStreamRetry=null;
+    function connectCrawlEvents() {
+      if(!window.EventSource){streamState='unsupported · polling';return;}
+      if(crawlStream)crawlStream.close();streamState='connecting';crawlStream=new EventSource(`${API_BASE}/events`);
+      crawlStream.onopen=()=>{streamState='connected';if(runtimeMode==='live')setText('#transport',`server · SSE ${streamState}`);};
+      const consume=message=>{try{const event=JSON.parse(message.data||'{}');
+        if(event.source){const current=sourceState.get(event.source)||{},status=event.status||current.status,success=status==='online';
+          const previous=current.activity||{},cached=success?false:['degraded','stale'].includes(status)?true:(current.cached??previous.cached??false);
+          const count=success?(metric(event.count)??previous.count):previous.count;
+          const lastSuccessAt=success?(metric(event.at)??previous.lastSuccessAt):previous.lastSuccessAt;
+          sourceState.set(event.source,{...current,status,cached,activity:{...previous,status,cached,count,lastSuccessAt,
+            requestUrl:success?(event.requestUrl||previous.requestUrl):previous.requestUrl,
+            elapsedMs:event.elapsedMs??previous.elapsedMs,error:success?null:(event.error??previous.error??null)}});renderSources();}
+        if(event.kind==='crawl_completed'||message.type==='resync')syncLive();
+      }catch{}};
+      ['crawl_started','source_started','source_completed','crawl_completed','heartbeat','resync'].forEach(type=>crawlStream.addEventListener(type,consume));
+      crawlStream.onerror=()=>{crawlStream.close();crawlStream=null;streamState='disconnected · polling';if(runtimeMode==='live')setText('#transport',`server · SSE ${streamState}`);clearTimeout(crawlStreamRetry);crawlStreamRetry=setTimeout(connectCrawlEvents,12000);};
+    }
+    async function syncLive() {
+      if(syncing)return {count:tokens.length,mode:runtimeMode};syncing=true;const revision=requestRevision,requestedSource=sourceFilter;
+      try {
+        const [live,stats,apiSources]=await Promise.all([getJson(`${API_BASE}/tokens?limit=500${requestedSource?`&source=${encodeURIComponent(requestedSource)}`:''}`),getJson(`${API_BASE}/stats`).catch(()=>null),getJson(`${API_BASE}/sources`).catch(()=>null)]);
+        if(revision!==requestRevision)return {count:tokens.length,mode:runtimeMode};
+        if(!Array.isArray(live))throw new Error('Invalid token snapshot');
+        if(Array.isArray(apiSources))sourceState=new Map(apiSources.map(source=>[source.name,source]));
+        else sourceState=new Map(sources.map(source=>[source.name,{...(sourceState.get(source.name)||{}),status:sourceHasSnapshot(source.name)?'stale':'unavailable',cached:sourceHasSnapshot(source.name),error:'Source health unavailable'}]));
+        const previous=selected;tokens.splice(0,tokens.length,...live.filter(t=>t&&t.address&&t.chain).map(liveToken));
+        hasRealData=true;lastSuccessfulSync=new Date();
+        if(previous)selected=tokens.find(t=>tokenKey(t)===tokenKey(previous))||{...previous,savedOnly:true,dataStatus:'cached'};
+        const current=new Map(tokens.map(t=>[tokenKey(t),t]));let changed=false;
+        const updatedWatch=watchlist.map(entry=>{const latest=current.get(entry.key);if(!latest)return entry;changed=true;return {...entry,symbol:latest.symbol,name:latest.name,source:latest.source,token:{...latest}};});
+        if(changed){try{localStorage.setItem(WATCH_KEY,JSON.stringify(updatedWatch));watchlist=updatedWatch;}catch{setText('#watchStatus','Watchlist snapshot could not be saved');}}
+        applyStats(stats);setRuntimeMode('live');return {count:tokens.length,mode:'live'};
+      } catch(error) {
+        if(revision!==requestRevision)return {count:tokens.length,mode:runtimeMode};
+        sourceState=new Map(sources.map(source=>{const prior=sourceState.get(source.name)||{},cached=sourceHasSnapshot(source.name);return [source.name,{...prior,status:prior.status==='key required'?'key required':cached?'stale':'unavailable',cached,activity:{...prior.activity,error:prior.activity?.error||error.message}}];}));
+        setRuntimeMode(hasRealData?'stale':'unavailable',`${hasRealData?'Cached snapshot':'No data'} · ${error.message}`);return {count:tokens.length,mode:runtimeMode};
+      } finally {syncing=false;if(revision!==requestRevision)queueMicrotask(()=>syncLive());}
+    }
+
+    function setupCanvas() {
+      const canvas=$('#scene'), ctx=canvas.getContext('2d'), wrap=$('#sceneWrap');
+      const resize=()=>{ const d=window.devicePixelRatio||1; canvas.width=wrap.clientWidth*d; canvas.height=wrap.clientHeight*d; ctx.setTransform(d,0,0,d,0,0); makeNodes(); }; window.addEventListener('resize',resize); resize();
+      function makeNodes(){
+        sceneNodes=[];
+        const visibleSources=sources.filter(source=>(!sourceFilter||source.name===sourceFilter)&&(sceneChain==='all'||source.chain.toLowerCase()===sceneChain||source.chain==='MULTI'));
+        const sourceChains=visibleSources.map(source=>source.chain);
+        const sourceCount=visibleSources.length;
+        for(let i=0;i<sourceCount;i++){
+          const a=(i/sourceCount)*Math.PI*2, r=145+(i%3)*22, z=((i%5)-2)*48;
+          const status=sourceState.get(visibleSources[i].name)?.status;
+          const sourceTint=status==='online'?'#69f0b2':status==='crawling'?'#67d9ff':['degraded','stale','key required'].includes(status)?'#f5c96a':'#51616e';
+          sceneNodes.push({x:Math.cos(a)*r,y:Math.sin(a)*r*.55,z,r:6+(i%3),kind:'source',chain:sourceChains[i]||'MULTI',color:sourceTint,seed:i*.91,token:null});
+        }
+        const rows=filteredTokens();
+        const count=Math.min(36,rows.length);
+        for(let i=0;i<count;i++){
+          const token=rows[i], a=(i/count)*Math.PI*2+(i%3)*.17, r=72+(i%7)*25, z=((i*37)%161)-80;
+          sceneNodes.push({x:Math.cos(a)*r,y:Math.sin(a)*r*.55,z,r:2+(i%3),kind:'token',chain:token.chain,color:token.color,seed:i*1.37,token});
+        }
+        setText('#nodeCount', `${sceneNodes.filter(n=>n.kind==='token' && (sceneChain==='all'||n.chain.toLowerCase()===sceneChain)).length} CAs shown (max 36) · ${sourceCount} sources`);
+      }
+      rebuildScene=makeNodes;
+      function project(n,w,h){ const c=Math.cos(rot), s=Math.sin(rot); const x=n.x*c-n.z*s, z=n.x*s+n.z*c; const scale=420/(420+z+250); return {x:w/2+x*scale,y:h/2+n.y*scale,z,scale}; }
+      function frame(time){ const w=wrap.clientWidth,h=wrap.clientHeight; if(!paused) rot+=.0017; ctx.clearRect(0,0,w,h); const center={x:w/2,y:h/2};
+        const stars=28; for(let i=0;i<stars;i++){ const a=(i/stars)*Math.PI*2+rot*.3, rr=90+(i%7)*31; const x=center.x+Math.cos(a)*rr, y=center.y+Math.sin(a)*rr*.4; ctx.fillStyle='#67d9ff20'; ctx.fillRect(x,y,1,1); }
+        const projected=sceneNodes.filter(n=>sceneChain==='all'||n.kind==='source'||n.chain.toLowerCase()===sceneChain).map(n=>({...n,...project(n,w,h)})).sort((a,b)=>a.z-b.z); const c3=project({x:0,y:0,z:0},w,h); projected.forEach(n=>{ const d=Math.hypot(n.x-c3.x,n.y-c3.y); if(d<270){ctx.strokeStyle=n.kind==='source'?'#ff4da62a':'#67d9ff1a'; ctx.lineWidth=1; ctx.beginPath();ctx.moveTo(c3.x,c3.y);ctx.lineTo(n.x,n.y);ctx.stroke();} });
+        ctx.strokeStyle='#67d9ff18'; ctx.lineWidth=1; for(let rr=70;rr<260;rr+=45){ctx.beginPath();ctx.ellipse(center.x,center.y,rr,rr*.42,0,0,Math.PI*2);ctx.stroke();}
+        projected.forEach(n=>{ const pulse=1+Math.sin(time*.002+n.seed)*.16; ctx.beginPath();ctx.arc(n.x,n.y,n.r*n.scale*pulse,0,Math.PI*2); ctx.fillStyle=n.color; ctx.shadowBlur=n.kind==='source'?16:9; ctx.shadowColor=n.color; ctx.globalAlpha=.35+.65*n.scale; ctx.fill();ctx.shadowBlur=0; if(n.kind==='source'){ctx.strokeStyle=n.color;ctx.globalAlpha=.65;ctx.stroke();} }); ctx.globalAlpha=1;
+        ctx.beginPath();ctx.arc(c3.x,c3.y,20+Math.sin(time*.002)*2,0,Math.PI*2);ctx.fillStyle='#101d28';ctx.fill();ctx.strokeStyle='#67d9ff';ctx.lineWidth=1.5;ctx.shadowBlur=24;ctx.shadowColor='#67d9ff';ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#e8edf2';ctx.font='10px IBM Plex Mono, monospace';ctx.textAlign='center';ctx.fillText('QUEEN',c3.x,c3.y+3);
+        requestAnimationFrame(frame);
+      } requestAnimationFrame(frame);
+      canvas.addEventListener('mousemove',e=>{ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left,y=e.clientY-rect.top; let hit=null, best=18; sceneNodes.forEach(n=>{const p=project(n,wrap.clientWidth,wrap.clientHeight);const d=Math.hypot(p.x-x,p.y-y);if(d<best){hit=n;best=d;}}); const tt=$('#tooltip'); if(hit&&hit.token){ tt.style.display='block';tt.style.left=Math.min(x+15,Math.max(0,wrap.clientWidth-185))+'px';tt.style.top=(y+15)+'px';tt.innerHTML=`<strong>${escapeHtml(hit.token.symbol)}</strong><span>${escapeHtml(hit.token.ca)}</span><br><span>${escapeHtml(hit.token.source)} · ${escapeHtml(tokenStatus(hit.token))}</span>`; canvas.style.cursor='pointer'; } else {tt.style.display='none';canvas.style.cursor='default';} });
+      canvas.addEventListener('click',e=>{ const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top; let hit=null,best=18; sceneNodes.forEach(n=>{const p=project(n,wrap.clientWidth,wrap.clientHeight),d=Math.hypot(p.x-x,p.y-y);if(d<best){hit=n;best=d;}}); if(hit&&hit.token)openDrawer(hit.token); });
+      $('#resetView').addEventListener('click',()=>{rot=0;makeNodes();}); $$('.scene-tools button[data-chain]').forEach(b=>b.addEventListener('click',()=>{sceneChain=b.dataset.chain; $$('.scene-tools button[data-chain]').forEach(x=>x.classList.toggle('active',x===b)); renderAll();}));
+    }
+    renderStream(); renderSources(); renderTable(); setupCanvas(); connectCrawlEvents(); syncLive();
+    setInterval(()=>syncLive(), 15000);
+  </script>
+</body>
+</html>
